@@ -1,0 +1,1022 @@
+@import url("https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&subset=latin-ext,vietnamese");
+html,
+body {
+  font-family: "Nunito", sans-serif;
+  color: #2e2f33;
+  background: #f8f9fa;
+  font-size: 14pt;
+  overflow-x: hidden;
+}
+
+*,
+input,
+textarea {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Nunito", sans-serif;
+  cursor: default;
+}
+
+*:focus,
+input:focus,
+textarea:focus {
+  outline: 0;
+}
+
+input,
+textarea {
+  cursor: text;
+}
+
+a {
+  font-weight: 400;
+  color: #228be6;
+  transition: all 0.3s;
+}
+
+h1 {
+  text-align: center;
+  font-weight: 300;
+  color: #767792;
+}
+
+label {
+  display: inline-block;
+  color: #adb5bd;
+  width: 100%;
+  text-transform: uppercase;
+}
+
+input {
+  display: inline-block;
+  margin: 0 20px 0 0;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid #f1f3f5;
+  background: #fff;
+  width: 100%;
+  color: #32325d;
+  outline: 0;
+  line-height: 32px;
+  font-size: 12pt;
+}
+
+@keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes zoomOutRight {
+  40% {
+    opacity: 1;
+    -webkit-transform: scale3d(0.475, 0.475, 0.475) translate3d(-42px, 0, 0);
+    transform: scale3d(0.475, 0.475, 0.475) translate3d(-42px, 0, 0);
+  }
+  to {
+    opacity: 0;
+    -webkit-transform: scale(0.1) translate3d(2000px, 0, 0);
+    transform: scale(0.1) translate3d(2000px, 0, 0);
+    -webkit-transform-origin: right center;
+    transform-origin: right center;
+  }
+}
+
+div.loader .spinner {
+  margin: 100px auto 100px;
+  width: 90px;
+  text-align: center;
+}
+
+div.loader .spinner > div {
+  width: 18px;
+  height: 18px;
+  background-color: #4d7cfe;
+  margin: 0 5px;
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+  animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+}
+
+div.loader .spinner .bounce1 {
+  -webkit-animation-delay: -0.32s;
+  animation-delay: -0.32s;
+}
+
+div.loader .spinner .bounce2 {
+  -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s;
+}
+
+@-webkit-keyframes sk-bouncedelay {
+  0%, 80%, 100% {
+    -webkit-transform: scale(0);
+  }
+  40% {
+    -webkit-transform: scale(1);
+  }
+}
+
+@keyframes sk-bouncedelay {
+  0%, 80%, 100% {
+    -webkit-transform: scale(0);
+    transform: scale(0);
+  }
+  40% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+  }
+}
+
+button {
+  border-radius: 5px;
+  line-height: 80px;
+  background: #4d7cfe;
+  border: 0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13pt;
+  margin: 0 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+  position: relative;
+  margin-right: 50px;
+  overflow: hidden;
+}
+
+button * {
+  cursor: pointer;
+}
+
+button svg {
+  stroke: #b1cdfd;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 4px;
+  margin-right: 5px;
+}
+
+button:hover {
+  background: #4774f1;
+}
+
+button.gray {
+  background: #edecf1;
+  color: #9f9fa7;
+}
+
+button.gray:hover {
+  background: #e8e6ec;
+}
+
+button .loader {
+  position: absolute;
+  right: -100px;
+  animation: spin 4s linear infinite;
+  transform-origin: 11.5px 20px;
+  margin-left: 15px;
+  margin-right: -15px;
+  top: 0;
+  transition: 0.3s all;
+}
+
+button.loading {
+  padding-right: 60px !important;
+}
+
+button.loading .loader {
+  right: 30px;
+}
+
+svg {
+  width: 48px;
+  height: 48px;
+  stroke: #c5c6cb;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  vertical-align: middle;
+}
+
+.err {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  color: #fe4f4c;
+}
+
+.inputWrapper {
+  margin: 16px 8px 24px;
+}
+
+.loginWrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loginWrapper .login {
+  width: 440px;
+  background: #fff;
+  border-radius: 5px;
+  padding: 24px;
+  margin: 20px;
+  box-shadow: 0px 3px 60px -6px rgba(0, 0, 0, 0.1);
+}
+
+.loginWrapper .login h1 {
+  font-weight: 900;
+  margin: 10px 0 40px;
+}
+
+.loginWrapper .login button {
+  margin: 10px 8px 20px;
+  width: calc(100% - 16px);
+  font-size: 16pt;
+}
+
+.loginWrapper .login button svg {
+  width: 32px;
+  height: 32px;
+}
+
+.adminWrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.adminWrapper #categoriesModal.noTouch .modalInner .inner ul li {
+  cursor: default;
+}
+
+.adminWrapper #categoriesModal.noTouch .modalInner .inner ul li.active, .adminWrapper #categoriesModal.noTouch .modalInner .inner ul li:hover {
+  background: transparent;
+  border-bottom: 1px solid #f5f6f8;
+}
+
+.adminWrapper #categoriesModal.noTouch button {
+  display: none;
+}
+
+.adminWrapper #categoriesModal.noTouch button.gray, .adminWrapper #categoriesModal.noTouch button#createCategory {
+  display: inline-block;
+}
+
+.adminWrapper .modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: -123;
+  background: rgba(255, 255, 255, 0);
+  transition: 0.2s background;
+}
+
+.adminWrapper .modal.active {
+  z-index: 123;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.adminWrapper .modal.active + .admin {
+  filter: blur(3px);
+}
+
+.adminWrapper .modal.active .modalInner {
+  transform: translateY(0px);
+  opacity: 1;
+}
+
+.adminWrapper .modal .modalInner {
+  width: 440px;
+  background: #fff;
+  border-radius: 5px;
+  padding: 24px 0;
+  margin: 20px;
+  box-shadow: 0px 3px 60px -6px rgba(0, 0, 0, 0.1);
+  transform: translateY(50px);
+  opacity: 0;
+  transition: 0.2s all;
+}
+
+.adminWrapper .modal .modalInner .bottom {
+  text-align: right;
+  padding: 0 24px;
+}
+
+.adminWrapper .modal .modalInner .inner {
+  margin: 20px 0;
+  height: 200px;
+  border-top: 2px solid #f5f6f8;
+  overflow: auto;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory {
+  height: 50px;
+  border-bottom: 1px solid #f5f6f8;
+  overflow: hidden;
+  position: relative;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input {
+  line-height: 50px;
+  padding: 0 20px;
+  font-size: 14pt;
+  cursor: text;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input::placeholder {
+  color: #4d7cfe;
+  opacity: 1;
+  transition: 0.2s opacity;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input:focus::placeholder {
+  opacity: 0;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input:valid + button {
+  right: 5px;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory button {
+  transition: 0.2s all;
+  top: 5px;
+  right: -100px;
+  position: absolute;
+}
+
+.adminWrapper .modal .modalInner .inner ul {
+  list-style: none;
+}
+
+.adminWrapper .modal .modalInner .inner ul li {
+  line-height: 50px;
+  border-bottom: 1px solid #f5f6f8;
+  padding-left: 20px;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .modal .modalInner .inner ul li:hover {
+  background: #f8faff;
+  border-bottom: 1px solid #f8faff;
+}
+
+.adminWrapper .modal .modalInner .inner ul li.active {
+  background: #e8efff;
+  border-bottom: 1px solid #e8efff;
+}
+
+.adminWrapper .modal .modalInner button {
+  height: 40px;
+  line-height: 40px;
+  padding: 0 15px;
+  font-size: 10pt;
+  margin: 0px;
+}
+
+.adminWrapper .admin {
+  width: 100vw;
+  min-height: 100vh;
+  transition: 0.2s filter;
+}
+
+.adminWrapper .admin .leftBar {
+  width: 350px;
+  background: white;
+  height: 100vh;
+  position: fixed;
+  box-shadow: -3px 0 30px 0px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.adminWrapper .admin .leftBar.small {
+  width: 65px;
+  overflow: hidden;
+}
+
+.adminWrapper .admin .leftBar.small .logo {
+  padding: 20px 10px;
+  font-size: 20pt;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner {
+  width: 350px;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner button {
+  height: 50px;
+  margin: 0 7.5px;
+  width: 50px;
+  border-radius: 50%;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner button svg {
+  margin-bottom: 11px;
+  margin-right: 0;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner ul li {
+  padding: 10px 19px;
+}
+
+.adminWrapper .admin .leftBar.small + .secondLeftBar {
+  left: 65px;
+}
+
+.adminWrapper .admin .leftBar.small + .secondLeftBar.full {
+  width: calc(100vw - 65px);
+  left: 65px;
+}
+
+.adminWrapper .admin .leftBar.small + .secondLeftBar + .main {
+  width: calc(100vw - 515px);
+  left: 515px;
+}
+
+.adminWrapper .admin .leftBar .logo {
+  padding: 15px 50px;
+  /*https://www.cssmatic.com/gradient-generator#'\-moz\-linear\-gradient\%28top\%2C\%20rgba\%2830\%2C150\%2C255\%2C1\%29\%200\%25\%2C\%20rgba\%2838\%2C121\%2C254\%2C1\%29\%20100\%25\%29\%3B'*/
+  background: #1e96ff;
+  background: -moz-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: -webkit-gradient(left top, left bottom, color-stop(0%, #1e96ff), color-stop(100%, #2679fe));
+  background: -webkit-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: -o-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: -ms-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: linear-gradient(to bottom, #1e96ff 0%, #2679fe 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1e96ff', endColorstr='#2679fe', GradientType=0 );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 24pt;
+  font-weight: 900;
+  margin: 0;
+  height: 74px;
+}
+
+.adminWrapper .admin .leftBar hr {
+  width: 100%;
+  border: none;
+  height: 2px;
+  background: #f5f6f8;
+}
+
+.adminWrapper .admin .leftBar .leftInner {
+  margin-top: 50px;
+}
+
+.adminWrapper .admin .leftBar .leftInner button {
+  width: calc(100% - 100px);
+  height: 60px;
+  line-height: 60px;
+  margin: 0 50px;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul {
+  list-style: none;
+  margin-top: 50px;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li {
+  border-left: 3px solid transparent;
+  padding: 10px 50px;
+  font-weight: 600;
+  margin: 20px 0;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li svg {
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  margin-bottom: 3px;
+  stroke: #c5c6cb;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li .number {
+  float: right;
+  border: 1px solid #f1f2f7;
+  border-radius: 50px;
+  color: #a3a8b3;
+  padding: 2px 15px;
+  font-size: 11pt;
+  transition: 0.2s all;
+  vertical-align: middle;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li .number:empty {
+  display: none;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active, .adminWrapper .admin .leftBar .leftInner ul li:hover {
+  color: #4f82ff;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active svg, .adminWrapper .admin .leftBar .leftInner ul li:hover svg {
+  stroke: #b3cefe;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active .number, .adminWrapper .admin .leftBar .leftInner ul li:hover .number {
+  color: #5687ff;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active {
+  border-left: 3px solid #7da5fc;
+}
+
+.adminWrapper .admin .secondLeftBar {
+  position: fixed;
+  width: 450px;
+  left: 350px;
+  height: 100vh;
+  transition: 0.2s all;
+  z-index: 1;
+  background: #f8f9fa;
+}
+
+.adminWrapper .admin .secondLeftBar.full {
+  width: calc(100vw - 350px);
+}
+
+.adminWrapper .admin .secondLeftBar .top {
+  height: 74px;
+  text-align: right;
+  overflow: hidden;
+  border-right: 1px solid #edeef1;
+}
+
+.adminWrapper .admin .secondLeftBar .top input {
+  width: 100%;
+  margin: 0;
+  left: 0;
+  top: 0;
+  position: absolute;
+  height: 74px;
+  border: none;
+  background: #f8f9fa;
+  z-index: 0;
+  cursor: text;
+  padding: 25px;
+}
+
+.adminWrapper .admin .secondLeftBar .top * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .top div {
+  width: 74px;
+  height: 74px;
+  display: inline-block;
+  position: relative;
+  z-index: 2;
+}
+
+.adminWrapper .admin .secondLeftBar .top div:hover svg {
+  stroke: #aaa;
+}
+
+.adminWrapper .admin .secondLeftBar .top div svg {
+  width: 28px;
+  height: 28px;
+  margin: 23px;
+  transition: 0.2s all;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .filter {
+  padding: 10px 15px;
+  height: 64px;
+  overflow: hidden;
+  color: #a4a8b3;
+  font-weight: 600;
+  border-right: 1px solid #edeef1;
+  border-bottom: 1px solid #edeef1;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .secondLeftBar .filter * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .filter:hover {
+  color: #888;
+}
+
+.adminWrapper .admin .secondLeftBar .filter:hover svg {
+  stroke: #aaa;
+}
+
+.adminWrapper .admin .secondLeftBar .filter.active .image svg {
+  transform: rotateZ(180deg);
+}
+
+.adminWrapper .admin .secondLeftBar .filter .image {
+  width: 44px;
+  height: 44px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.adminWrapper .admin .secondLeftBar .filter .image svg {
+  width: 28px;
+  height: 28px;
+  transition: 0.2s all;
+  margin: 6px 8px 8px;
+}
+
+.adminWrapper .admin .secondLeftBar hr {
+  width: 100%;
+  border: none;
+  height: 2px;
+  background: #edeef1;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner {
+  overflow: auto;
+  height: calc(100vh - 138px);
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner #items {
+  display: flex;
+  flex-direction: column;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner #items.reverse {
+  flex-direction: column-reverse;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item {
+  width: 100%;
+  height: 130px;
+  transition: 0.2s all;
+  padding: 40px 25px;
+  border-right: 1px solid #edeef1;
+  border-bottom: 1px solid #edeef1;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item:hover {
+  background: #f4f4f4;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item.active {
+  background: white;
+  border-right: 1px solid #fff;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .name {
+  font-size: 15pt;
+  font-weight: 700;
+  color: #303135;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content {
+  font-size: 11pt;
+  color: #b1b7c0;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .summary {
+  white-space: nowrap;
+  overflow: hidden;
+  display: block;
+  text-overflow: ellipsis;
+  width: 70%;
+  float: left;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .humanDate {
+  display: block;
+  float: right;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .tags,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .slug,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .image,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .date,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .lat,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .lng {
+  display: none;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder {
+  padding: 40px;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button {
+  width: 60px;
+  height: 60px;
+  background: #4d7cfe;
+  border-radius: 50%;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button:hover {
+  background: #4774f1;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button svg {
+  width: 32px;
+  height: 32px;
+  margin: 14px;
+  stroke: #fff;
+}
+
+.adminWrapper .admin .main {
+  width: calc(100vw - 800px);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 800px;
+  background: white;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .main div.loader {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 76px;
+  height: calc(100vh - 76px);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.3s all;
+}
+
+.adminWrapper .admin .main .innerMain {
+  transition: 0.3s transform, 0.3s opacity;
+}
+
+.adminWrapper .admin .main.loading div.loader {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.adminWrapper .admin .main.loading .innerMain {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+.adminWrapper .admin .main .top {
+  height: 74px;
+}
+
+.adminWrapper .admin .main .top .remove.loading {
+  animation: zoomOutRight 1s;
+  animation-fill-mode: forwards;
+}
+
+.adminWrapper .admin .main .top .notify {
+  float: right;
+}
+
+.adminWrapper .admin .main .top .notify.active svg {
+  stroke: #4d7cfe;
+}
+
+.adminWrapper .admin .main .top div {
+  width: 74px;
+  height: 74px;
+  display: inline-block;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .top div * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .top div:hover svg {
+  stroke: #aaa;
+}
+
+.adminWrapper .admin .main .top div svg {
+  width: 28px;
+  height: 28px;
+  margin: 23px;
+  transition: 0.2s all;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main hr {
+  width: 100%;
+  border: none;
+  height: 2px;
+  background: #f5f6f8;
+}
+
+.adminWrapper .admin .main .innerMain {
+  width: 100%;
+  padding: 0 20px 0 40px;
+  height: calc(100vh - 76px);
+  padding-bottom: 100px;
+  margin: 0 auto;
+  overflow: auto;
+  overflow-x: hidden;
+  /*https://stackoverflow.com/questions/425274/prevent-line-paragraph-breaks-in-contenteditable*/
+}
+
+.adminWrapper .admin .main .innerMain .desc {
+  margin-top: 74px;
+  color: #a4a8b3;
+}
+
+.adminWrapper .admin .main .innerMain .desc #date input {
+  color: #a4a8b3;
+  font-family: 'Nunito';
+  font-size: 14pt;
+  border: none;
+}
+
+.adminWrapper .admin .main .innerMain #slug {
+  display: none;
+}
+
+.adminWrapper .admin .main .innerMain h1 {
+  text-align: left;
+  color: #585858;
+  font-weight: 700;
+  margin: 10px 0 20px;
+  font-size: 44pt;
+  cursor: text;
+}
+
+.adminWrapper .admin .main .innerMain h1:empty::before {
+  content: attr(placeholder);
+  color: #e2e2e2;
+}
+
+.adminWrapper .admin .main .innerMain h1 * {
+  display: inline;
+}
+
+.adminWrapper .admin .main .innerMain h1 br {
+  display: none;
+}
+
+.adminWrapper .admin .main .innerMain .tags {
+  height: auto;
+  clear: both;
+  width: 100%;
+  display: block;
+  float: none;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag {
+  width: auto;
+  background: #e6efff;
+  height: 44px;
+  float: left;
+  line-height: 44px;
+  padding: 0 0 0 12px;
+  margin: 0 10px 0 0;
+  border-radius: 5px;
+  border: 1px solid #d7e2ff;
+  margin-bottom: 5px;
+  color: #4f7ffe;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag .remove {
+  display: inline-block;
+  width: 28px;
+  height: 42px;
+  margin: 0px 0;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag .remove * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag .remove svg {
+  width: 14px;
+  height: 14px;
+  stroke: #4f7ffe;
+  margin-bottom: 2px;
+}
+
+.adminWrapper .admin .main .innerMain .tags .addTag {
+  width: 44px;
+  background: #f5f6fa;
+  height: 44px;
+  float: left;
+  line-height: 44px;
+  margin: 0 10px 0 0;
+  border-radius: 5px;
+  border: 1px solid #efeef2;
+  color: #aeb1bb;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .main .innerMain .tags .addTag:hover {
+  background: #f0f2fb;
+}
+
+.adminWrapper .admin .main .innerMain .content {
+  min-height: 300px;
+  cursor: text;
+  white-space: pre-wrap;
+}
+
+.adminWrapper .admin .main .innerMain .content:empty::before {
+  content: attr(placeholder);
+  color: #e2e2e2;
+}
+
+.adminWrapper .admin .main .innerMain .content * {
+  cursor: text;
+}
+
+.adminWrapper .admin .main .innerMain .mapWrapper {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+
+.adminWrapper .admin .main .innerMain .mapWrapper #map {
+  width: 100%;
+  height: 100%;
+}
+
+.adminWrapper .admin .main .innerMain .mapWrapper .marker {
+  background: #228be6;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.6);
+  left: calc(50% - 4px);
+  top: calc(50% - 4px);
+  position: absolute;
+  pointer-events: none;
+}
+
+.adminWrapper .admin .main .innerMain button {
+  line-height: 40px;
+  height: 40px;
+  padding: 0 30px;
+  margin: 40px 0 0;
+  float: left;
+}
+
+.adminWrapper .admin .main .innerMain button:disabled {
+  background: #edecf1;
+  color: #9f9fa7;
+}
+
+::-webkit-scrollbar {
+  width: 17px;
+}
+
+::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 17px 17px rgba(0, 0, 0, 0.05);
+  border: 7px solid transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 17px 17px #999;
+  border: 7px solid transparent;
+}

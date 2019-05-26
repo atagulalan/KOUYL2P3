@@ -1,0 +1,55 @@
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "public",
+    "rewrites": [
+      {
+        "source": "/helloWorld",
+        "function": "helloWorld"
+      },
+      {
+        "source": "/addItem",
+        "function": "addItem"
+      },
+      {
+        "source": "/removeItem",
+        "function": "removeItem"
+      },
+      {
+        "source": "/list",
+        "function": "list"
+      },
+      {
+        "source": "/list/**",
+        "function": "list"
+      },
+      {
+        "source": "/categories",
+        "function": "categories"
+      },
+      {
+        "source": "/radius",
+        "function": "radius"
+      },
+      {
+        "source": "/register",
+        "function": "register"
+      },
+      {
+        "source": "/addAdminRole",
+        "function": "addAdminRole"
+      }
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

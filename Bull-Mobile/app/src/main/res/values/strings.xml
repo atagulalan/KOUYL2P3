@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">Bull</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="bull">bull</string>
+    <string name="e_posta">E-POSTA</string>
+    <string name="g_r_nen_ad">GÖRÜNEN AD</string>
+    <string name="fre">ŞİFRE</string>
+    <string name="kay_t_ol">Kayıt Ol</string>
+    <string name="hesab_n_var_m">hesabın var mı?</string>
+    <string name="giri_yap">Giriş Yap</string>
+    <string name="k_yap">Çıkış Yap</string>
+    <string name="ifre_de_i_tir">Şifre Değiştir</string>
+    <string name="yen_fre">YENİ ŞİFRE</string>
+    <string name="tekrar_ho_geldin_nata_g_lalan">Tekrar Hoşgeldin, Ata Gülalan</string>
+    <string name="yak_n_mdaki_ma_azalar_bul">Yakınımdaki Mağazaları Bul</string>
+    <string name="harita">Harita</string>
+    <string name="liste">Liste</string>
+    <string name="mevcut_konum">Mevcut Konum</string>
+    <string name="konumu_se">Konumu Seç</string>
+    <string name="_1_0km">1.0km</string>
+    <string name="filtre">Filtre</string>
+    <string name="ara">Ara</string>
+    <string name="ya_da">ya da</string>
+    <string name="lorem">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget volutpat nulla, nec
+        porttitor justo. Maecenas vehicula ultricies lacus. Vivamus molestie turpis ac nulla ullamcorper, id volutpat
+        tortor condimentum. Aenean quis fermentum lacus, vitae posuere ligula. Aliquam pulvinar in quam in bibendum.
+        Cras non lacus sed lacus pellentesque posuere at ac nisi. Proin felis est, malesuada vel risus et, fringilla
+        feugiat ex. Aliquam elementum sem at lacus tincidunt dignissim. Duis sed efficitur dui, sed condimentum augue.
+        Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.
+    </string>
+    <string name="firma_ad">Firma Adı</string>
+    <string name="selamlar_kelamlar">Selamlar, Kelamlar</string>
+    <string name="_25_04_2019_14_23">25.04.2019 14:23</string>
+</resources>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+    <title>Bull Admin</title>
+  </head>
+  <body onload="adminOnload()">
+    <div class="adminWrapper">
+      <div class="modal" id="categoriesModal">
+        <div class="modalInner">
+          <h1>Kategoriler</h1>
+          <div class="inner">
+            <div class="addCategory">
+              <input id="categoryName" placeholder="+ Kategori ekle" required />
+              <button class="addButton" id="createCategory">Oluştur</button>
+            </div>
+            <ul></ul>
+          </div>
+          <div class="bottom">
+            <button class="gray" onclick="exitModal('#categoriesModal')">
+              İptal
+            </button>
+            <button onclick="exitModal('#categoriesModal', addCategory)">
+              Ekle
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="admin">
+        <div class="leftBar">
+          <div class="logo">bull</div>
+          <hr />
+          <div class="leftInner">
+            <button id="newPost">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19,13 L19,20 C19,20.5522847 18.5522847,21 18,21 L4,21 C3.44771525,21 3,20.5522847 3,20 L3,4 C3,3.44771525 3.44771525,3 4,3 L13,3"
+                ></path>
+                <path
+                  d="M21.2892136 2.03921356L21.9607864 2.71078644C22.741835 3.49183502 22.741835 4.75816498 21.9607864 5.53921356L12 15.5 8.5 15.5 8.5 12 18.4607864 2.03921356C19.241835 1.25816498 20.508165 1.25816498 21.2892136 2.03921356zM17.25 3.25L20.75 6.75"
+                ></path>
+              </svg>
+              Yeni kampanya
+            </button>
+            <ul>
+              <li class="active">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M18.4142136 4.41421356L19.5857864 5.58578644C20.366835 6.36683502 20.366835 7.63316498 19.5857864 8.41421356L8 20 4 20 4 16 15.5857864 4.41421356C16.366835 3.63316498 17.633165 3.63316498 18.4142136 4.41421356zM14 6L18 10"
+                  ></path>
+                </svg>
+                Kampanyalar
+                <div class="number" id="postsNumber"></div>
+              </li>
+              <li onclick="showModal('#categoriesModal', 'noTouch')">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="10" cy="12" r="1"></circle>
+                  <path
+                    d="M8 18l-6-6 6-6h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8z"
+                  ></path>
+                </svg>
+                Kategoriler
+                <div class="number" id="categoriesNumber"></div>
+              </li>
+              <li onclick="logout()">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 2L12 11M18.363961 5.63603897C21.8786797 9.15075759 21.8786797 14.8492424 18.363961 18.363961 14.8492424 21.8786797 9.15075759 21.8786797 5.63603897 18.363961 2.12132034 14.8492424 2.12132034 9.15075759 5.63603897 5.63603897"
+                  ></path>
+                </svg>
+                Çıkış
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="secondLeftBar full">
+          <div class="top">
+            <input type="text" id="search" />
+            <div class="search" id="searchButton">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path d="M14.4121122,14.4121122 L20,20"></path>
+                <circle cx="10" cy="10" r="6"></circle>
+              </svg>
+            </div>
+          </div>
+          <hr />
+          <div class="filter active" id="filter">
+            <div class="image">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path d="M10 7L14 7M6 12L18 12M3 17L21 17"></path>
+              </svg>
+            </div>
+            <span>En yeni</span>
+          </div>
+          <div class="secondLeftInner">
+            <span id="items" class="reverse">
+              <div class="loader"><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>
+            </span>
+            <div class="adder">
+              <div class="button" id="addCircle">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M20 12L4 12M12 4L12 20"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main loading">
+          <div class="top">
+            <div class="remove" id="removePost">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 6L5 6M14 5L10 5M6 10L6 20C6 20.6666667 6.33333333 21 7 21 7.66666667 21 11 21 17 21 17.6666667 21 18 20.6666667 18 20 18 19.3333333 18 16 18 10"
+                ></path>
+              </svg>
+            </div>
+          </div>
+          <hr />
+          <div class="loader"><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>
+          <div class="innerMain">
+            <div class="desc">
+              <span id="date">
+                  <input type="datetime-local" id="postFullDate"
+                    name="meeting-time" value="2018-06-12T19:30" required>
+              </span>
+            </div>
+            <h1 contenteditable="true" id="title" placeholder="Firma Adı"></h1>
+            <span id="slug"></span>
+            <div class="tags" id="tags"></div>
+            <div
+              class="content"
+              contenteditable="true"
+              id="content"
+              placeholder="Kampanya içeriği"
+            ></div>
+            <div class="bottom">
+              <div class="mapWrapper">
+                <div id="map"></div>
+                <div class="marker"></div>
+              </div>
+              <button id="save">
+                Kaydet
+                <i class="loader">
+                  <svg role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M16.7647059,7.82108056 L16.7647059,5 C16.7647059,3.8954305 15.8692754,3 14.7647059,3 L9.23529412,3 C8.13072462,3 7.23529412,3.8954305 7.23529412,5 L7.23529412,7.82108056 L11.4142136,12 L7.23529412,16.1789194 L7.23529412,19 C7.23529412,20.1045695 8.13072462,21 9.23529412,21 L14.7647059,21 C15.8692754,21 16.7647059,20.1045695 16.7647059,19 L16.7647059,16.1789194 L12.5857864,12 L16.7647059,7.82108056 Z"></path>
+                  </svg>
+                </i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-auth.js"></script>
+    <script src="../assets/js/main.js"></script>
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBk6kv0DRH7onRsRZTsWsS-UcTkWg2QKEQ&callback=initMap">
+    </script>
+  </body>
+</html>
