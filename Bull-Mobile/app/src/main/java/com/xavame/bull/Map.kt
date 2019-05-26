@@ -192,7 +192,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                 //Toast.makeText(this,"Response=$it",Toast.LENGTH_SHORT).show()
             },
             Response.ErrorListener {
-                Toast.makeText(this,"Yakınınızda hiç fırsat yok.",Toast.LENGTH_SHORT).show()
+                Toast.makeText(this,"Hiç kategori bulunamadı.",Toast.LENGTH_SHORT).show()
             }
         ){}
         VolleySingleton.getInstance(this).addToRequestQueue(req)
@@ -211,6 +211,9 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
         }
         // and from list
         markers.clear()
+
+        // Update adapter
+        recylerView.adapter = CardHolder(markers)
     }
 
     fun addMarker(title: String, desc: String, cat: String, time: String, lat: Double, lng: Double){
@@ -275,6 +278,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                 maskTheMarkers()
             },
             Response.ErrorListener {
+                clearMarkers()
                 Toast.makeText(this,"Yakınınızda hiç fırsat yok.",Toast.LENGTH_SHORT).show()
             }
         ) {

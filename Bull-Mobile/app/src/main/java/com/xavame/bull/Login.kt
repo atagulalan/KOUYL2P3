@@ -19,7 +19,7 @@ class Login : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // Initialize Layout
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.register)
+        setContentView(R.layout.login)
 
         // Change status bar to white
         window.decorView.systemUiVisibility =View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
@@ -35,7 +35,7 @@ class Login : AppCompatActivity() {
         // Check if user is signed in (non-null) and update UI accordingly.
         val currentUser = auth.currentUser
         if(currentUser != null){
-            Toast.makeText(this, currentUser.toString(), Toast.LENGTH_LONG).show()
+            //Toast.makeText(this, currentUser.toString(), Toast.LENGTH_LONG).show()
             nextScreenUser()
         }
     }
