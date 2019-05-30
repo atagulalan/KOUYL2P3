@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/card_view"
+        android:layout_gravity="center"
+        android:layout_width="match_parent"
+        app:cardCornerRadius="2dp"
+        app:contentPadding="10dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp">
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        <TextView
+                android:id="@+id/firmaAdi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/firma_ad"
+                android:textSize="32sp"
+                android:paddingBottom="5dp"
+                android:fontFamily="@font/nunito_black"/>
+        <TextView
+                android:id="@+id/kampanyaIcerik"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/lorem"
+                android:paddingBottom="5dp" android:fontFamily="@font/nunito_semibold"/>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+            <TextView
+                    android:id="@+id/kampanyaKategori"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/selamlar_kelamlar"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/nunito_semibold"/>
+            <TextView
+                    android:id="@+id/kampanyaTarih"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/_25_04_2019_14_23"
+                    android:fontFamily="@font/nunito_semibold"/>
+        </LinearLayout>
+    </LinearLayout>
+</android.support.v7.widget.CardView>

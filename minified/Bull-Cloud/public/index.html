@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="./assets/css/styles.css" />
+    <title>Bull Admin</title>
+  </head>
+  <body onload="loginOnload()">
+    <div class="loginWrapper">
+      <div class="login">
+        <h1>bull</h1>
+        <div class="inputWrapper">
+          <label for="name">Kullanıcı Adı</label>
+          <input type="text" id="name" autofocus />
+        </div>
+        <div class="inputWrapper">
+          <label for="pass">Şifre</label>
+          <input type="password" id="pass" />
+        </div>
+        <div class="err" id="err"></div>
+        <button onClick="generateToken()">
+          <svg
+            role="img"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+          >
+            <rect width="14" height="10" x="5" y="11"></rect>
+            <path
+              d="M12,3 L12,3 C14.7614237,3 17,5.23857625 17,8 L17,11 L7,11 L7,8 C7,5.23857625 9.23857625,3 12,3 Z"
+            ></path>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+          Giriş Yap
+        </button>
+      </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-auth.js"></script>
+    <script src="./assets/js/main.js"></script>
+  </body>
+</html>
