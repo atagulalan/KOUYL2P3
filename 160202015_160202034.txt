@@ -1,0 +1,4638 @@
+﻿160202015 - Oğuzhan Türker
+160202034 - Ata Gülalan
+             __
+        _   / /|
+       |\\  \/_/
+       \_\| / __
+          \/_/__\           .-=='/~\
+   ____,__/__,_____,______)/   /{~}}}
+   -,------,----,-----,---,\'-' {{~}}
+                            '-==.\}/
+
+
+
+--------{--(@  Bull-Cloud/.firebaserc  @)--}--------
+
+{
+  "projects": {
+    "default": "bull-41"
+  }
+}
+
+
+
+--------{--(@  Bull-Cloud/firebase.json  @)--}--------
+
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "public",
+    "rewrites": [
+      {
+        "source": "/addItem",
+        "function": "addItem"
+      },
+      {
+        "source": "/removeItem",
+        "function": "removeItem"
+      },
+      {
+        "source": "/list",
+        "function": "list"
+      },
+      {
+        "source": "/list/**",
+        "function": "list"
+      },
+      {
+        "source": "/categories",
+        "function": "categories"
+      },
+      {
+        "source": "/radius",
+        "function": "radius"
+      }
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
+
+
+
+--------{--(@  Bull-Cloud/firestore.indexes.json  @)--}--------
+
+{
+  "indexes": [],
+  "fieldOverrides": []
+}
+
+
+
+--------{--(@  Bull-Cloud/firestore.rules  @)--}--------
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write;
+    }
+  }
+}
+
+
+
+--------{--(@  Bull-Cloud/functions/index.js  @)--}--------
+
+/* Notable docs (for firebase api only):
+  
+  Getting Started: https://firebase.google.com/docs/cli/
+
+  --- HOSTING ---
+  https://firebase.google.com/docs/hosting/
+  https://firebase.google.com/docs/hosting/use-cases
+  https://firebase.google.com/docs/hosting/full-config
+
+  --- AUTHENTICATION ---
+  https://firebase.google.com/docs/auth
+  https://firebase.google.com/docs/auth/admin/manage-users#create_a_user
+  https://firebase.google.com/docs/auth/admin/custom-claims
+
+  --- FIRESTORE ---
+  https://firebase.google.com/docs/firestore/query-data/queries
+  https://firebase.google.com/docs/firestore/manage-data/delete-data
+  https://firebase.google.com/docs/firestore/query-data/get-data
+
+  --- FUNCTIONS ---
+  https://firebase.google.com/docs/functions/get-started
+  https://firebase.google.com/docs/functions/local-emulator
+
+  --- WEB ---
+  https://firebase.google.com/docs/auth/web/manage-users
+  https://firebase.google.com/docs/auth/web/password-auth
+  https://firebase.google.com/docs/auth/web/firebaseui
+
+  To solve firebase local emulator error on windows, check out:
+  https://github.com/firebase/firebase-tools/issues/1280
+
+  --- OUR BELOVED SAVIOR, STACKOVERFLOW ---
+  https://stackoverflow.com/questions/46257738/cant-reference-public-folder-from-node-js-deployment-with-firebase
+  https://stackoverflow.com/questions/46630507/how-to-run-a-geo-nearby-query-with-firestore
+  https://stackoverflow.com/questions/46603691/how-to-save-geopoint-in-firebase-cloud-firestore
+  https://stackoverflow.com/questions/51295561/firebase-functions-functions-is-not-defined
+  https://stackoverflow.com/questions/44899658/how-to-authenticate-an-user-in-firebase-admin-in-nodejs
+  https://stackoverflow.com/questions/37883981/cant-get-currentuser-on-load
+  https://stackoverflow.com/questions/19537225/map-setcenter-function-is-not-working-properly
+  https://stackoverflow.com/questions/46880323/how-to-check-if-a-cloud-firestore-document-exists-when-using-realtime-updates
+  https://stackoverflow.com/questions/49188722/how-to-http-request-by-post-method-with-kotlin
+  https://stackoverflow.com/questions/46721517/google-firestore-how-to-get-document-by-multiple-ids-in-one-round-trip
+  https://stackoverflow.com/questions/46900430/firestore-getting-documents-id-from-collection
+  https://stackoverflow.com/questions/48541270/how-to-add-document-with-custom-id-to-firestore-angular
+  https://stackoverflow.com/questions/5976854/how-to-disable-google-maps-satellite-view
+  https://stackoverflow.com/questions/37413111/adding-the-displayname-whilst-using-createuserwithemailandpassword
+  ---
+  https://stackoverflow.com/questions/16771225/css3-rotate-animation
+  https://github.com/daneden/animate.css/
+  https://github.com/xavame/xavame.github.io/blob/development/pages/_slug.vue
+  https://codepen.io/HugoGiraudel/pen/4ab4d7e6e21b63ee0ba51bdd7b3b2abb
+  https://developers.google.com/maps/documentation/javascript/examples/event-simple
+
+  --- OTHER RESOURCES ---
+  https://blog.usejournal.com/build-a-serverless-full-stack-app-using-firebase-cloud-functions-81afe34a64fc
+  https://gist.github.com/zenorocha/9282426622fc8f46a6caeff40008de75
+  https://github.com/firebase/functions-samples/blob/master/username-password-auth/functions/index.js
+  https://medium.com/from-the-scratch/firebase-things-you-must-know-to-avoid-wasting-time-as-a-beginner-f327090e451d
+  https://howtofirebase.com/mildly-secret-custom-claims-58d7ff930e06
+  https://medium.com/google-developers/controlling-data-access-using-firebase-auth-custom-claims-88b3c2c9352a
+  https://developers.google.com/maps/documentation/javascript/get-api-key
+  https://angularfirebase.com/lessons/geolocation-query-in-firestore-realtime/
+  https://webbjocke.com/javascript-check-data-types/
+  https://itnext.io/working-with-firebase-functions-http-request-22fd1ab644d3
+  https://en.wikipedia.org/wiki/Geohash
+
+  More resources can occur as commented above each use.
+*/
+const functions = require('firebase-functions');
+const admin = require('firebase-admin')
+const serviceAccount = require('./service-account.json');
+/* https://github.com/expressjs/cors */
+const cors = require('cors')({ origin: true });
+/* https://github.com/geofirestore/geofirestore-js */
+const { GeoFirestore } = require('geofirestore');
+/* https://github.com/chrisveness/latlon-geohash */
+const Geohash = require('latlon-geohash');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: `https://${process.env.GCLOUD_PROJECT}.firebaseio.com`,
+});
+
+// Create a Firestore reference
+const firestore = admin.firestore();
+// Create a GeoFirestore reference
+const geofirestore = new GeoFirestore(firestore);
+
+// Checks http request type and moves accordingly
+needsToBeType = (req, res, type, callback) => {
+  if (req.method !== type) {
+    return res.status(401).json({
+      status: false,
+      message: 'Not allowed'
+    })
+  } else {
+    callback(req, res);
+  }
+};
+
+// Creates a response with given parameters
+createResponse = (res, code, message, returnObj) => {
+  statusByCode = {
+    200: true,
+    400: false
+  }
+  return res.status(code).json({
+    status: statusByCode[code],
+    message,
+    returnObj
+  })
+}
+
+// Gets all categories
+exports.categories = functions.https.onRequest((req, res) => {
+  return cors(req, res, () => {
+    needsToBeType(req, res, "GET", () => {
+      let col = firestore.collection('companies');
+      col.get().then(function (querySnapshot) {
+        let returnObj = {};
+        querySnapshot.forEach(function (doc) {
+          doc.data().d.KampanyaKategori.map(el => {
+            returnObj[el] = 1;
+          })
+        });
+        return createResponse(res, 200, 'Successfully listed.', Object.keys(returnObj));
+      });
+    });
+  })
+});
+
+// Gets all discounts within radius
+exports.radius = functions.https.onRequest((req, res) => {
+  return cors(req, res, () => {
+    needsToBeType(req, res, "POST", () => {
+      if (!req.body.currentLocation || !req.body.currentLocation.lat || !req.body.currentLocation.lng) return createResponse(res, 400, 'Location is not provided.');
+      if (!req.body.radius) return createResponse(res, 400, 'Radius is not provided.');
+
+      const geocollection = geofirestore.collection('companies');
+      // Create a GeoQuery based on a location
+      const query = geocollection.near({
+        center: new admin.firestore.GeoPoint(req.body.currentLocation.lat, req.body.currentLocation.lng),
+        radius: req.body.radius
+      });
+
+      // Get query (as Promise)
+      query.get()
+        .then((value) => {
+          /* https://stackoverflow.com/questions/46721517/google-firestore-how-to-get-document-by-multiple-ids-in-one-round-trip */
+          firestore.getAll(...value.docs.map(el => firestore.doc(`companies/${el.id}`)))
+            .then(docs => {
+              let returnObj = [];
+              docs.forEach(function (doc) {
+                returnObj.push(doc.data().d);
+              });
+              return createResponse(res, 200, 'Successfully listed.', returnObj);
+            })
+            .catch(function (error) {
+              return createResponse(res, 400, 'Cannot get document from Geo.');
+            });
+        })
+        .catch(function (error) {
+          return createResponse(res, 400, 'FAILED.' + error);
+        });
+    });
+  });
+});
+
+// Lists all discounts
+exports.list = functions.https.onRequest((req, res) => {
+  return cors(req, res, () => {
+    needsToBeType(req, res, "GET", () => {
+      let tag = "";
+      //HAS TAG 
+      if (req.url.startsWith("/list/")) {
+        tag = req.url.substr(6);
+        /* https://stackoverflow.com/questions/388996/regex-for-javascript-to-allow-only-alphanumeric */
+        /* https://stackoverflow.com/questions/38511176/removing-unwanted-characters-from-string-using-javascript-regex-for-feeding-into */
+        tag = tag.replace(/[\n\t\r]/g, "")
+        tag = decodeURIComponent(tag);
+      }
+
+      let col = firestore.collection('companies');
+      if (tag) {
+        col = col.where('d.KampanyaKategori', 'array-contains', tag)
+      }
+      col.get().then(function (querySnapshot) {
+        let returnObj = [];
+        querySnapshot.forEach(function (doc) {
+          returnObj.push(doc.data().d);
+        });
+        return createResponse(res, 200, 'Successfully listed.', returnObj);
+      });
+    });
+  })
+})
+
+// Adds item to database
+exports.addItem = functions.https.onRequest((req, res) => {
+  return cors(req, res, () => {
+    needsToBeType(req, res, "POST", () => {
+
+      // Check if all the infos are provided
+      if (!req.body.name || !req.body.id || !req.body.location || !req.body.content || !req.body.category || !req.body.time || !req.body.token) {
+        return createResponse(res, 400, 'One or more fields not found in the JSON data.');
+      }
+
+      // Weak type recognition
+      if (typeof req.body.name !== "string" ||
+        typeof req.body.id !== "string" ||
+        typeof req.body.location !== "object" ||
+        typeof req.body.content !== "string" ||
+        typeof req.body.category !== "object" ||
+        typeof req.body.time !== "number" ||
+        typeof req.body.token !== "string") {
+        return createResponse(res, 400, 'One or more fields not defined properly.');
+      }
+
+      // Verify the ID token first.
+      admin.auth().verifyIdToken(req.body.token)
+        .then((claims) => {
+          // Allow access to requested admin resource.
+          if (claims.admin === true) {
+            firestore.collection('companies').doc(req.body.id).set({
+                g: Geohash.encode(req.body.location[0], req.body.location[1], [12]),
+                l: new admin.firestore.GeoPoint(req.body.location[0], req.body.location[1]),
+                d: {
+                  FirmaAdi: req.body.name,
+                  FirmaID: req.body.id,
+                  FirmaLokasyon: new admin.firestore.GeoPoint(req.body.location[0], req.body.location[1]),
+                  KampanyaIcerik: req.body.content,
+                  KampanyaKategori: req.body.category,
+                  KampanyaSuresi: admin.firestore.Timestamp.fromDate(new Date(req.body.time)),
+                }
+              })
+              .then(ref => {
+                // Return reference id if successful
+                return createResponse(res, 200, "Successfully added new company.", {
+                  id: req.body.id
+                });
+              })
+              .catch(function (error) {
+                return createResponse(res, 400, `Something went wrong.`);
+              });
+          } else {
+            return createResponse(res, 400, `You are not an admin. Please ask your admin to be an admin.`);
+          }
+        })
+        .catch(function (error) {
+          console.log("error:", error)
+          return createResponse(res, 400, "Could not verify admin token.");
+        });
+
+    });
+  });
+});
+
+// Removed item from database
+exports.removeItem = functions.https.onRequest((req, res) => {
+  return cors(req, res, () => {
+    needsToBeType(req, res, "POST", () => {
+
+      // Check if all the infos are provided
+      if (!req.body.id || !req.body.token) {
+        return createResponse(res, 400, 'One or more fields not found in the JSON data.');
+      }
+
+      // Weak type recognition
+      if (typeof req.body.id !== "string" ||
+        typeof req.body.token !== "string") {
+        return createResponse(res, 400, 'One or more fields not defined properly.');
+      }
+
+      // Verify the ID token first.
+      admin.auth().verifyIdToken(req.body.token)
+        .then((claims) => {
+          // Allow access to requested admin resource.
+          if (claims.admin === true) {
+
+            firestore.collection('companies').doc(req.body.id).delete().then(() => {
+              return createResponse(res, 200, `Successfully removed.`);
+            }).catch((error) => {
+              return createResponse(res, 400, `Could not remove item.`);
+            });
+          } else {
+            return createResponse(res, 400, `You are not an admin. Please ask your admin to be an admin.`);
+          }
+        })
+        .catch(function (error) {
+          return createResponse(res, 400, "Could not verify admin token.");
+        });
+
+    });
+  });
+});
+
+
+
+/* THESE FUNCTIONS ARE NOT NECESSARY ANYMORE, EXCEPT ADDADMINROLE. USE IT AS YOU WISH */
+/*
+exports.helloWorld = functions.https.onRequest((request, response) => {
+  response.send("Hello from a Severless Database!");
+});
+exports.register = functions.https.onRequest((req, res) => {
+  return cors(req, res, () => {
+    needsToBeType(req, res, "POST", () => {
+      if (!req.body.username) return createResponse(res,400,'Username is not provided.');
+      if (!req.body.email) return createResponse(res,400,'E-mail is not provided.');
+      if (!req.body.password) return createResponse(res,400,'Password is not provided.');
+      admin.auth().createUser({
+          email: req.body.email,
+          password: req.body.password,
+          displayName: req.body.username
+        }).then(function (userRecord) {
+          // See the UserRecord reference doc for the contents of userRecord.
+          console.log('Successfully created new user:', userRecord.uid);
+          return createResponse(res,200,'Account creation is successful.');
+        })
+        .catch(function (error) {
+          return createResponse(res,400,'Account creation failed.');
+        });
+    });
+  })
+})
+// Source for claims: https://www.youtube.com/watch?v=3hj_r_N0qMs
+//                  : https://www.youtube.com/watch?v=4wa3CMK4E2Y
+// In need of adding admin claim, uncomment this and send a post request
+exports.addAdminRole = functions.https.onRequest((req, res) => {
+  return cors(req, res, () => {
+    needsToBeType(req, res, "POST", () => {
+      if (!req.body.email) return createResponse(res,400,'E-mail is not provided.');
+      admin.auth().getUserByEmail(req.body.email).then(user => {
+        admin.auth().setCustomUserClaims(user.uid, {
+          admin: true
+        })
+      }).then(()=>{
+        return createResponse(res,200,`Success! ${req.body.email} has been made an admin.`);
+      }).catch(err => {
+        return createResponse(res,400,`Success! Error while making account admin.`);
+      })
+     if (!req.body.email) return createResponse(res,400,`Setting admin claims are disabled.`);
+    });
+  });
+});
+*/
+
+
+--------{--(@  Bull-Cloud/functions/package.json  @)--}--------
+
+{
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase serve --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "8"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "firebase": "^6.0.2",
+    "firebase-admin": "~7.0.0",
+    "firebase-functions": "^2.3.1",
+    "geofirestore": "^3.3.1",
+    "latlon-geohash": "^1.1.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^0.1.6"
+  },
+  "private": true
+}
+
+
+
+--------{--(@  Bull-Cloud/functions/service-account.json  @)--}--------
+
+{
+  "type": "service_account",
+  "project_id": "",
+  "private_key_id": "",
+  "private_key": "",
+  "client_email": "",
+  "client_id": "",
+  "auth_uri": "",
+  "token_uri": "",
+  "auth_provider_x509_cert_url": "",
+  "client_x509_cert_url": ""
+}
+
+
+
+--------{--(@  Bull-Cloud/public/404.html  @)--}--------
+
+404.
+
+
+--------{--(@  Bull-Cloud/public/admin/index.html  @)--}--------
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+    <title>Bull Admin</title>
+  </head>
+  <body onload="adminOnload()">
+    <div class="adminWrapper">
+      <div class="modal" id="categoriesModal">
+        <div class="modalInner">
+          <h1>Kategoriler</h1>
+          <div class="inner">
+            <div class="addCategory">
+              <input id="categoryName" placeholder="+ Kategori ekle" required />
+              <button class="addButton" id="createCategory">Oluştur</button>
+            </div>
+            <ul></ul>
+          </div>
+          <div class="bottom">
+            <button class="gray" onclick="exitModal('#categoriesModal')">
+              İptal
+            </button>
+            <button onclick="exitModal('#categoriesModal', addCategory)">
+              Ekle
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="admin">
+        <div class="leftBar">
+          <div class="logo">bull</div>
+          <hr />
+          <div class="leftInner">
+            <button id="newPost">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19,13 L19,20 C19,20.5522847 18.5522847,21 18,21 L4,21 C3.44771525,21 3,20.5522847 3,20 L3,4 C3,3.44771525 3.44771525,3 4,3 L13,3"
+                ></path>
+                <path
+                  d="M21.2892136 2.03921356L21.9607864 2.71078644C22.741835 3.49183502 22.741835 4.75816498 21.9607864 5.53921356L12 15.5 8.5 15.5 8.5 12 18.4607864 2.03921356C19.241835 1.25816498 20.508165 1.25816498 21.2892136 2.03921356zM17.25 3.25L20.75 6.75"
+                ></path>
+              </svg>
+              Yeni kampanya
+            </button>
+            <ul>
+              <li class="active">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M18.4142136 4.41421356L19.5857864 5.58578644C20.366835 6.36683502 20.366835 7.63316498 19.5857864 8.41421356L8 20 4 20 4 16 15.5857864 4.41421356C16.366835 3.63316498 17.633165 3.63316498 18.4142136 4.41421356zM14 6L18 10"
+                  ></path>
+                </svg>
+                Kampanyalar
+                <div class="number" id="postsNumber"></div>
+              </li>
+              <li onclick="showModal('#categoriesModal', 'noTouch')">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="10" cy="12" r="1"></circle>
+                  <path
+                    d="M8 18l-6-6 6-6h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8z"
+                  ></path>
+                </svg>
+                Kategoriler
+                <div class="number" id="categoriesNumber"></div>
+              </li>
+              <li onclick="logout()">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 2L12 11M18.363961 5.63603897C21.8786797 9.15075759 21.8786797 14.8492424 18.363961 18.363961 14.8492424 21.8786797 9.15075759 21.8786797 5.63603897 18.363961 2.12132034 14.8492424 2.12132034 9.15075759 5.63603897 5.63603897"
+                  ></path>
+                </svg>
+                Çıkış
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="secondLeftBar full">
+          <div class="top">
+            <input type="text" id="search" />
+            <div class="search" id="searchButton">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path d="M14.4121122,14.4121122 L20,20"></path>
+                <circle cx="10" cy="10" r="6"></circle>
+              </svg>
+            </div>
+          </div>
+          <hr />
+          <div class="filter active" id="filter">
+            <div class="image">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path d="M10 7L14 7M6 12L18 12M3 17L21 17"></path>
+              </svg>
+            </div>
+            <span>En yeni</span>
+          </div>
+          <div class="secondLeftInner">
+            <span id="items" class="reverse">
+              <div class="loader"><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>
+            </span>
+            <div class="adder">
+              <div class="button" id="addCircle">
+                <svg
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M20 12L4 12M12 4L12 20"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main loading">
+          <div class="top">
+            <div class="remove" id="removePost">
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M19 6L5 6M14 5L10 5M6 10L6 20C6 20.6666667 6.33333333 21 7 21 7.66666667 21 11 21 17 21 17.6666667 21 18 20.6666667 18 20 18 19.3333333 18 16 18 10"
+                ></path>
+              </svg>
+            </div>
+          </div>
+          <hr />
+          <div class="loader"><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>
+          <div class="innerMain">
+            <div class="desc">
+              <span id="date">
+                  <input type="datetime-local" id="postFullDate"
+                    name="meeting-time" value="2018-06-12T19:30" required>
+              </span>
+            </div>
+            <h1 contenteditable="true" id="title" placeholder="Firma Adı"></h1>
+            <span id="slug"></span>
+            <div class="tags" id="tags"></div>
+            <div
+              class="content"
+              contenteditable="true"
+              id="content"
+              placeholder="Kampanya içeriği"
+            ></div>
+            <div class="bottom">
+              <div class="mapWrapper">
+                <div id="map"></div>
+                <div class="marker"></div>
+              </div>
+              <button id="save">
+                Kaydet
+                <i class="loader">
+                  <svg role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M16.7647059,7.82108056 L16.7647059,5 C16.7647059,3.8954305 15.8692754,3 14.7647059,3 L9.23529412,3 C8.13072462,3 7.23529412,3.8954305 7.23529412,5 L7.23529412,7.82108056 L11.4142136,12 L7.23529412,16.1789194 L7.23529412,19 C7.23529412,20.1045695 8.13072462,21 9.23529412,21 L14.7647059,21 C15.8692754,21 16.7647059,20.1045695 16.7647059,19 L16.7647059,16.1789194 L12.5857864,12 L16.7647059,7.82108056 Z"></path>
+                  </svg>
+                </i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-auth.js"></script>
+    <script src="../assets/js/main.js"></script>
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBk6kv0DRH7onRsRZTsWsS-UcTkWg2QKEQ&callback=initMap">
+    </script>
+  </body>
+</html>
+
+
+
+--------{--(@  Bull-Cloud/public/assets/css/styles.css  @)--}--------
+
+@import url("https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&subset=latin-ext,vietnamese");
+html,
+body {
+  font-family: "Nunito", sans-serif;
+  color: #2e2f33;
+  background: #f8f9fa;
+  font-size: 14pt;
+  overflow-x: hidden;
+}
+
+*,
+input,
+textarea {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Nunito", sans-serif;
+  cursor: default;
+}
+
+*:focus,
+input:focus,
+textarea:focus {
+  outline: 0;
+}
+
+input,
+textarea {
+  cursor: text;
+}
+
+a {
+  font-weight: 400;
+  color: #228be6;
+  transition: all 0.3s;
+}
+
+h1 {
+  text-align: center;
+  font-weight: 300;
+  color: #767792;
+}
+
+label {
+  display: inline-block;
+  color: #adb5bd;
+  width: 100%;
+  text-transform: uppercase;
+}
+
+input {
+  display: inline-block;
+  margin: 0 20px 0 0;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid #f1f3f5;
+  background: #fff;
+  width: 100%;
+  color: #32325d;
+  outline: 0;
+  line-height: 32px;
+  font-size: 12pt;
+}
+
+@keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes zoomOutRight {
+  40% {
+    opacity: 1;
+    -webkit-transform: scale3d(0.475, 0.475, 0.475) translate3d(-42px, 0, 0);
+    transform: scale3d(0.475, 0.475, 0.475) translate3d(-42px, 0, 0);
+  }
+  to {
+    opacity: 0;
+    -webkit-transform: scale(0.1) translate3d(2000px, 0, 0);
+    transform: scale(0.1) translate3d(2000px, 0, 0);
+    -webkit-transform-origin: right center;
+    transform-origin: right center;
+  }
+}
+
+div.loader .spinner {
+  margin: 100px auto 100px;
+  width: 90px;
+  text-align: center;
+}
+
+div.loader .spinner > div {
+  width: 18px;
+  height: 18px;
+  background-color: #4d7cfe;
+  margin: 0 5px;
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+  animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+}
+
+div.loader .spinner .bounce1 {
+  -webkit-animation-delay: -0.32s;
+  animation-delay: -0.32s;
+}
+
+div.loader .spinner .bounce2 {
+  -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s;
+}
+
+@-webkit-keyframes sk-bouncedelay {
+  0%, 80%, 100% {
+    -webkit-transform: scale(0);
+  }
+  40% {
+    -webkit-transform: scale(1);
+  }
+}
+
+@keyframes sk-bouncedelay {
+  0%, 80%, 100% {
+    -webkit-transform: scale(0);
+    transform: scale(0);
+  }
+  40% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+  }
+}
+
+button {
+  border-radius: 5px;
+  line-height: 80px;
+  background: #4d7cfe;
+  border: 0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13pt;
+  margin: 0 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+  position: relative;
+  margin-right: 50px;
+  overflow: hidden;
+}
+
+button * {
+  cursor: pointer;
+}
+
+button svg {
+  stroke: #b1cdfd;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 4px;
+  margin-right: 5px;
+}
+
+button:hover {
+  background: #4774f1;
+}
+
+button.gray {
+  background: #edecf1;
+  color: #9f9fa7;
+}
+
+button.gray:hover {
+  background: #e8e6ec;
+}
+
+button .loader {
+  position: absolute;
+  right: -100px;
+  animation: spin 4s linear infinite;
+  transform-origin: 11.5px 20px;
+  margin-left: 15px;
+  margin-right: -15px;
+  top: 0;
+  transition: 0.3s all;
+}
+
+button.loading {
+  padding-right: 60px !important;
+}
+
+button.loading .loader {
+  right: 30px;
+}
+
+svg {
+  width: 48px;
+  height: 48px;
+  stroke: #c5c6cb;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  vertical-align: middle;
+}
+
+.err {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  color: #fe4f4c;
+}
+
+.inputWrapper {
+  margin: 16px 8px 24px;
+}
+
+.loginWrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loginWrapper .login {
+  width: 440px;
+  background: #fff;
+  border-radius: 5px;
+  padding: 24px;
+  margin: 20px;
+  box-shadow: 0px 3px 60px -6px rgba(0, 0, 0, 0.1);
+}
+
+.loginWrapper .login h1 {
+  font-weight: 900;
+  margin: 10px 0 40px;
+}
+
+.loginWrapper .login button {
+  margin: 10px 8px 20px;
+  width: calc(100% - 16px);
+  font-size: 16pt;
+}
+
+.loginWrapper .login button svg {
+  width: 32px;
+  height: 32px;
+}
+
+.adminWrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.adminWrapper #categoriesModal.noTouch .modalInner .inner ul li {
+  cursor: default;
+}
+
+.adminWrapper #categoriesModal.noTouch .modalInner .inner ul li.active, .adminWrapper #categoriesModal.noTouch .modalInner .inner ul li:hover {
+  background: transparent;
+  border-bottom: 1px solid #f5f6f8;
+}
+
+.adminWrapper #categoriesModal.noTouch button {
+  display: none;
+}
+
+.adminWrapper #categoriesModal.noTouch button.gray, .adminWrapper #categoriesModal.noTouch button#createCategory {
+  display: inline-block;
+}
+
+.adminWrapper .modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: -123;
+  background: rgba(255, 255, 255, 0);
+  transition: 0.2s background;
+}
+
+.adminWrapper .modal.active {
+  z-index: 123;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.adminWrapper .modal.active + .admin {
+  filter: blur(3px);
+}
+
+.adminWrapper .modal.active .modalInner {
+  transform: translateY(0px);
+  opacity: 1;
+}
+
+.adminWrapper .modal .modalInner {
+  width: 440px;
+  background: #fff;
+  border-radius: 5px;
+  padding: 24px 0;
+  margin: 20px;
+  box-shadow: 0px 3px 60px -6px rgba(0, 0, 0, 0.1);
+  transform: translateY(50px);
+  opacity: 0;
+  transition: 0.2s all;
+}
+
+.adminWrapper .modal .modalInner .bottom {
+  text-align: right;
+  padding: 0 24px;
+}
+
+.adminWrapper .modal .modalInner .inner {
+  margin: 20px 0;
+  height: 200px;
+  border-top: 2px solid #f5f6f8;
+  overflow: auto;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory {
+  height: 50px;
+  border-bottom: 1px solid #f5f6f8;
+  overflow: hidden;
+  position: relative;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input {
+  line-height: 50px;
+  padding: 0 20px;
+  font-size: 14pt;
+  cursor: text;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input::placeholder {
+  color: #4d7cfe;
+  opacity: 1;
+  transition: 0.2s opacity;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input:focus::placeholder {
+  opacity: 0;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory input:valid + button {
+  right: 5px;
+}
+
+.adminWrapper .modal .modalInner .inner .addCategory button {
+  transition: 0.2s all;
+  top: 5px;
+  right: -100px;
+  position: absolute;
+}
+
+.adminWrapper .modal .modalInner .inner ul {
+  list-style: none;
+}
+
+.adminWrapper .modal .modalInner .inner ul li {
+  line-height: 50px;
+  border-bottom: 1px solid #f5f6f8;
+  padding-left: 20px;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .modal .modalInner .inner ul li:hover {
+  background: #f8faff;
+  border-bottom: 1px solid #f8faff;
+}
+
+.adminWrapper .modal .modalInner .inner ul li.active {
+  background: #e8efff;
+  border-bottom: 1px solid #e8efff;
+}
+
+.adminWrapper .modal .modalInner button {
+  height: 40px;
+  line-height: 40px;
+  padding: 0 15px;
+  font-size: 10pt;
+  margin: 0px;
+}
+
+.adminWrapper .admin {
+  width: 100vw;
+  min-height: 100vh;
+  transition: 0.2s filter;
+}
+
+.adminWrapper .admin .leftBar {
+  width: 350px;
+  background: white;
+  height: 100vh;
+  position: fixed;
+  box-shadow: -3px 0 30px 0px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.adminWrapper .admin .leftBar.small {
+  width: 65px;
+  overflow: hidden;
+}
+
+.adminWrapper .admin .leftBar.small .logo {
+  padding: 20px 10px;
+  font-size: 20pt;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner {
+  width: 350px;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner button {
+  height: 50px;
+  margin: 0 7.5px;
+  width: 50px;
+  border-radius: 50%;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner button svg {
+  margin-bottom: 11px;
+  margin-right: 0;
+}
+
+.adminWrapper .admin .leftBar.small .leftInner ul li {
+  padding: 10px 19px;
+}
+
+.adminWrapper .admin .leftBar.small + .secondLeftBar {
+  left: 65px;
+}
+
+.adminWrapper .admin .leftBar.small + .secondLeftBar.full {
+  width: calc(100vw - 65px);
+  left: 65px;
+}
+
+.adminWrapper .admin .leftBar.small + .secondLeftBar + .main {
+  width: calc(100vw - 515px);
+  left: 515px;
+}
+
+.adminWrapper .admin .leftBar .logo {
+  padding: 15px 50px;
+  /*https://www.cssmatic.com/gradient-generator#'\-moz\-linear\-gradient\%28top\%2C\%20rgba\%2830\%2C150\%2C255\%2C1\%29\%200\%25\%2C\%20rgba\%2838\%2C121\%2C254\%2C1\%29\%20100\%25\%29\%3B'*/
+  background: #1e96ff;
+  background: -moz-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: -webkit-gradient(left top, left bottom, color-stop(0%, #1e96ff), color-stop(100%, #2679fe));
+  background: -webkit-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: -o-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: -ms-linear-gradient(top, #1e96ff 0%, #2679fe 100%);
+  background: linear-gradient(to bottom, #1e96ff 0%, #2679fe 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1e96ff', endColorstr='#2679fe', GradientType=0 );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 24pt;
+  font-weight: 900;
+  margin: 0;
+  height: 74px;
+}
+
+.adminWrapper .admin .leftBar hr {
+  width: 100%;
+  border: none;
+  height: 2px;
+  background: #f5f6f8;
+}
+
+.adminWrapper .admin .leftBar .leftInner {
+  margin-top: 50px;
+}
+
+.adminWrapper .admin .leftBar .leftInner button {
+  width: calc(100% - 100px);
+  height: 60px;
+  line-height: 60px;
+  margin: 0 50px;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul {
+  list-style: none;
+  margin-top: 50px;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li {
+  border-left: 3px solid transparent;
+  padding: 10px 50px;
+  font-weight: 600;
+  margin: 20px 0;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li svg {
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  margin-bottom: 3px;
+  stroke: #c5c6cb;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li .number {
+  float: right;
+  border: 1px solid #f1f2f7;
+  border-radius: 50px;
+  color: #a3a8b3;
+  padding: 2px 15px;
+  font-size: 11pt;
+  transition: 0.2s all;
+  vertical-align: middle;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li .number:empty {
+  display: none;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active, .adminWrapper .admin .leftBar .leftInner ul li:hover {
+  color: #4f82ff;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active svg, .adminWrapper .admin .leftBar .leftInner ul li:hover svg {
+  stroke: #b3cefe;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active .number, .adminWrapper .admin .leftBar .leftInner ul li:hover .number {
+  color: #5687ff;
+}
+
+.adminWrapper .admin .leftBar .leftInner ul li.active {
+  border-left: 3px solid #7da5fc;
+}
+
+.adminWrapper .admin .secondLeftBar {
+  position: fixed;
+  width: 450px;
+  left: 350px;
+  height: 100vh;
+  transition: 0.2s all;
+  z-index: 1;
+  background: #f8f9fa;
+}
+
+.adminWrapper .admin .secondLeftBar.full {
+  width: calc(100vw - 350px);
+}
+
+.adminWrapper .admin .secondLeftBar .top {
+  height: 74px;
+  text-align: right;
+  overflow: hidden;
+  border-right: 1px solid #edeef1;
+}
+
+.adminWrapper .admin .secondLeftBar .top input {
+  width: 100%;
+  margin: 0;
+  left: 0;
+  top: 0;
+  position: absolute;
+  height: 74px;
+  border: none;
+  background: #f8f9fa;
+  z-index: 0;
+  cursor: text;
+  padding: 25px;
+}
+
+.adminWrapper .admin .secondLeftBar .top * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .top div {
+  width: 74px;
+  height: 74px;
+  display: inline-block;
+  position: relative;
+  z-index: 2;
+}
+
+.adminWrapper .admin .secondLeftBar .top div:hover svg {
+  stroke: #aaa;
+}
+
+.adminWrapper .admin .secondLeftBar .top div svg {
+  width: 28px;
+  height: 28px;
+  margin: 23px;
+  transition: 0.2s all;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .filter {
+  padding: 10px 15px;
+  height: 64px;
+  overflow: hidden;
+  color: #a4a8b3;
+  font-weight: 600;
+  border-right: 1px solid #edeef1;
+  border-bottom: 1px solid #edeef1;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .secondLeftBar .filter * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .filter:hover {
+  color: #888;
+}
+
+.adminWrapper .admin .secondLeftBar .filter:hover svg {
+  stroke: #aaa;
+}
+
+.adminWrapper .admin .secondLeftBar .filter.active .image svg {
+  transform: rotateZ(180deg);
+}
+
+.adminWrapper .admin .secondLeftBar .filter .image {
+  width: 44px;
+  height: 44px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.adminWrapper .admin .secondLeftBar .filter .image svg {
+  width: 28px;
+  height: 28px;
+  transition: 0.2s all;
+  margin: 6px 8px 8px;
+}
+
+.adminWrapper .admin .secondLeftBar hr {
+  width: 100%;
+  border: none;
+  height: 2px;
+  background: #edeef1;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner {
+  overflow: auto;
+  height: calc(100vh - 138px);
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner #items {
+  display: flex;
+  flex-direction: column;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner #items.reverse {
+  flex-direction: column-reverse;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item {
+  width: 100%;
+  height: 130px;
+  transition: 0.2s all;
+  padding: 40px 25px;
+  border-right: 1px solid #edeef1;
+  border-bottom: 1px solid #edeef1;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item:hover {
+  background: #f4f4f4;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item.active {
+  background: white;
+  border-right: 1px solid #fff;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .name {
+  font-size: 15pt;
+  font-weight: 700;
+  color: #303135;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content {
+  font-size: 11pt;
+  color: #b1b7c0;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .summary {
+  white-space: nowrap;
+  overflow: hidden;
+  display: block;
+  text-overflow: ellipsis;
+  width: 70%;
+  float: left;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .humanDate {
+  display: block;
+  float: right;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .tags,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .slug,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .image,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .date,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .lat,
+.adminWrapper .admin .secondLeftBar .secondLeftInner .item .content .lng {
+  display: none;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder {
+  padding: 40px;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button {
+  width: 60px;
+  height: 60px;
+  background: #4d7cfe;
+  border-radius: 50%;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button:hover {
+  background: #4774f1;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .secondLeftBar .secondLeftInner .adder .button svg {
+  width: 32px;
+  height: 32px;
+  margin: 14px;
+  stroke: #fff;
+}
+
+.adminWrapper .admin .main {
+  width: calc(100vw - 800px);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 800px;
+  background: white;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .main div.loader {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 76px;
+  height: calc(100vh - 76px);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.3s all;
+}
+
+.adminWrapper .admin .main .innerMain {
+  transition: 0.3s transform, 0.3s opacity;
+}
+
+.adminWrapper .admin .main.loading div.loader {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.adminWrapper .admin .main.loading .innerMain {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+.adminWrapper .admin .main .top {
+  height: 74px;
+}
+
+.adminWrapper .admin .main .top .remove.loading {
+  animation: zoomOutRight 1s;
+  animation-fill-mode: forwards;
+}
+
+.adminWrapper .admin .main .top .notify {
+  float: right;
+}
+
+.adminWrapper .admin .main .top .notify.active svg {
+  stroke: #4d7cfe;
+}
+
+.adminWrapper .admin .main .top div {
+  width: 74px;
+  height: 74px;
+  display: inline-block;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .top div * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .top div:hover svg {
+  stroke: #aaa;
+}
+
+.adminWrapper .admin .main .top div svg {
+  width: 28px;
+  height: 28px;
+  margin: 23px;
+  transition: 0.2s all;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main hr {
+  width: 100%;
+  border: none;
+  height: 2px;
+  background: #f5f6f8;
+}
+
+.adminWrapper .admin .main .innerMain {
+  width: 100%;
+  padding: 0 20px 0 40px;
+  height: calc(100vh - 76px);
+  padding-bottom: 100px;
+  margin: 0 auto;
+  overflow: auto;
+  overflow-x: hidden;
+  /*https://stackoverflow.com/questions/425274/prevent-line-paragraph-breaks-in-contenteditable*/
+}
+
+.adminWrapper .admin .main .innerMain .desc {
+  margin-top: 74px;
+  color: #a4a8b3;
+}
+
+.adminWrapper .admin .main .innerMain .desc #date input {
+  color: #a4a8b3;
+  font-family: 'Nunito';
+  font-size: 14pt;
+  border: none;
+}
+
+.adminWrapper .admin .main .innerMain #slug {
+  display: none;
+}
+
+.adminWrapper .admin .main .innerMain h1 {
+  text-align: left;
+  color: #585858;
+  font-weight: 700;
+  margin: 10px 0 20px;
+  font-size: 44pt;
+  cursor: text;
+}
+
+.adminWrapper .admin .main .innerMain h1:empty::before {
+  content: attr(placeholder);
+  color: #e2e2e2;
+}
+
+.adminWrapper .admin .main .innerMain h1 * {
+  display: inline;
+}
+
+.adminWrapper .admin .main .innerMain h1 br {
+  display: none;
+}
+
+.adminWrapper .admin .main .innerMain .tags {
+  height: auto;
+  clear: both;
+  width: 100%;
+  display: block;
+  float: none;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag {
+  width: auto;
+  background: #e6efff;
+  height: 44px;
+  float: left;
+  line-height: 44px;
+  padding: 0 0 0 12px;
+  margin: 0 10px 0 0;
+  border-radius: 5px;
+  border: 1px solid #d7e2ff;
+  margin-bottom: 5px;
+  color: #4f7ffe;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag .remove {
+  display: inline-block;
+  width: 28px;
+  height: 42px;
+  margin: 0px 0;
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag .remove * {
+  cursor: pointer;
+}
+
+.adminWrapper .admin .main .innerMain .tags .tag .remove svg {
+  width: 14px;
+  height: 14px;
+  stroke: #4f7ffe;
+  margin-bottom: 2px;
+}
+
+.adminWrapper .admin .main .innerMain .tags .addTag {
+  width: 44px;
+  background: #f5f6fa;
+  height: 44px;
+  float: left;
+  line-height: 44px;
+  margin: 0 10px 0 0;
+  border-radius: 5px;
+  border: 1px solid #efeef2;
+  color: #aeb1bb;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s all;
+}
+
+.adminWrapper .admin .main .innerMain .tags .addTag:hover {
+  background: #f0f2fb;
+}
+
+.adminWrapper .admin .main .innerMain .content {
+  min-height: 300px;
+  cursor: text;
+  white-space: pre-wrap;
+}
+
+.adminWrapper .admin .main .innerMain .content:empty::before {
+  content: attr(placeholder);
+  color: #e2e2e2;
+}
+
+.adminWrapper .admin .main .innerMain .content * {
+  cursor: text;
+}
+
+.adminWrapper .admin .main .innerMain .mapWrapper {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+
+.adminWrapper .admin .main .innerMain .mapWrapper #map {
+  width: 100%;
+  height: 100%;
+}
+
+.adminWrapper .admin .main .innerMain .mapWrapper .marker {
+  background: #228be6;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.6);
+  left: calc(50% - 4px);
+  top: calc(50% - 4px);
+  position: absolute;
+  pointer-events: none;
+}
+
+.adminWrapper .admin .main .innerMain button {
+  line-height: 40px;
+  height: 40px;
+  padding: 0 30px;
+  margin: 40px 0 0;
+  float: left;
+}
+
+.adminWrapper .admin .main .innerMain button:disabled {
+  background: #edecf1;
+  color: #9f9fa7;
+}
+
+::-webkit-scrollbar {
+  width: 17px;
+}
+
+::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 17px 17px rgba(0, 0, 0, 0.05);
+  border: 7px solid transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 17px 17px #999;
+  border: 7px solid transparent;
+}
+
+
+
+--------{--(@  Bull-Cloud/public/assets/js/main.js  @)--}--------
+
+/* https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm */
+
+$ = (q, e) => {
+  let i = typeof e === "number" ? e : undefined;
+  let o = typeof e === "object" ? e : undefined;
+  let r = o ? o.querySelectorAll(q) : document.querySelectorAll(q);
+  if(i!==undefined){
+      return r[i];
+  }else if(r.length===1){
+      return r[0];
+  }else{
+      return r;
+  }
+}
+
+//YouMightNotNeedjQuery
+HTMLElement.prototype.find = function(q){return $(q, this)};
+HTMLElement.prototype.hasClass = function(q){return this.classList ? this.classList.contains(q) : new RegExp('(^| )' + q + '( |$)', 'gi').test(this.q); }
+HTMLElement.prototype.addClass = function(q){return this.classList ? this.classList.add(q) : this.className += ' ' + q;}
+HTMLElement.prototype.removeClass = function(q){return this.classList ? this.classList.remove(q) : this.className = this.className.replace(new RegExp('(^|\\b)' + q.split(' ').join('|') + '(\\b|$)', 'gi'), ' '); }
+HTMLElement.prototype.toggleClass =  function(q){return this.hasClass(q) ? this.removeClass(q) : this.addClass(q); }
+HTMLElement.prototype.attr = function(q,s){return s!==undefined ? s===null ? this.removeAttribute(q) : this.setAttribute(q, s) : this.getAttribute(q); }
+HTMLElement.prototype.data = function(q,s){return this.attr("data-"+q,s); }
+HTMLElement.prototype.html = function(q){return this.innerHTML=q; }
+HTMLElement.prototype.forEach = function(q,s){return [this].forEach(q,s); }
+HTMLElement.prototype.append = function(q){return this.appendChild(q); }
+
+let tagTemplate = ['<div class="tag" name="','">',' <div class="remove"><svg role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6.34314575 6.34314575L17.6568542 17.6568542M6.34314575 17.6568542L17.6568542 6.34314575"></path></svg></div></div>'];
+let modalTagTemplate = ['<li class="active" name="','">','</li>']
+let monthArr = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+let changesMade = false;
+let oldCategories = {};
+let lastArr = [];
+let map = null;
+
+  // Your web app's Firebase configuration
+  var firebaseConfig = {
+    apiKey: "AIzaSyBk6kv0DRH7onRsRZTsWsS-UcTkWg2QKEQ",
+    authDomain: "bull-41.firebaseapp.com",
+    databaseURL: "https://bull-41.firebaseio.com",
+    projectId: "bull-41",
+    storageBucket: "bull-41.appspot.com",
+    messagingSenderId: "652007032196",
+    appId: "1:652007032196:web:8284033fe2c2b1b1"
+  };
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+
+//https://developer.mozilla.org/en-US/docs/Learn/HTML/Forms/Sending_forms_through_JavaScript
+function post(url, data, callback=()=>{}) {
+    if(firebase.auth().currentUser){
+        firebase.auth().currentUser.getIdToken().then(token=>{
+            data.token = token;
+            var XHR = new XMLHttpRequest();
+            XHR.addEventListener('load', function(event) {
+                callback(XHR.response);
+            });
+            XHR.open('POST', url);
+            XHR.setRequestHeader('Content-Type', 'application/json');
+            XHR.send(JSON.stringify(data));
+        })
+    } else {
+        var XHR = new XMLHttpRequest();
+        XHR.addEventListener('load', function(event) {
+            callback(XHR.response);
+        });
+        XHR.open('POST', url);
+        XHR.setRequestHeader('Content-Type', 'application/json');
+        XHR.send(JSON.stringify(data));
+    }
+}
+
+function get(url, callback=()=>{}) {
+    var XHR = new XMLHttpRequest();
+    XHR.addEventListener('load', function(event) {
+        callback(XHR.response);
+    });
+    XHR.open('GET', url);
+    XHR.send();
+}
+
+logout = () => {
+    firebase.auth().signOut().then(function() {
+        // Sign-out successful.
+        console.log("signed out")
+        window.location = "/"
+    }).catch(function(error) {
+        // An error happened.
+        console.log("error while signing out")
+    });
+}
+
+generateToken = () => {
+    let name = $("#name").value;
+    let pass = $("#pass").value;
+    let err = $("#err");
+    firebase.auth().signInWithEmailAndPassword(name, pass)
+    .then(function(res) {
+        window.location = "/admin"
+    })
+    .catch(function(error) {
+        // Handle Errors here.
+        var errorCode = error.code;
+        var errorMessage = error.message;
+        console.log(errorCode, errorMessage);
+        err.innerText = "Giriş başarısız."
+        // ...
+    });
+}
+
+showModal = (id, extraClass) => {
+    $(id).addClass("active");
+    if(extraClass){
+        $(id).addClass(extraClass);
+    }
+}
+
+exitModal = (id, callback=()=>{}) => {
+    let n = isNaN($("#categoriesModal .inner ul li").length) ? 1 : $("#categoriesModal .inner ul li").length
+    $("#categoriesNumber").innerText = n;
+    $(id).attr("class", "modal");
+    callback();
+}
+
+addCategory = () => {
+    changesMade = true;
+    $("#tags").innerHTML = "";
+    $("#categoriesModal .inner ul li.active").forEach(el=>{
+        $("#tags").innerHTML += tagTemplate.join(el.innerText.trim().replace(/\,|\"|\'|\`/g, ''));
+    })
+    $("#tags").innerHTML += '<div class="addTag">+</div>';
+    addTagFunctionality();
+}
+
+addTagFunctionality = () => {
+    $("#tags .tag .remove").forEach(removeButton=>{
+        removeButton.addEventListener("click", function(){
+            let tag = removeButton.parentNode;
+            tag.parentNode.removeChild(tag);
+        });
+    })
+    $("#tags .addTag").addEventListener("click", function(){
+        $("#categoriesModal ul li").forEach(el=>{
+            el.removeClass("active");
+        })
+        $("#tags .tag").forEach(el=>{
+            $("#categoriesModal ul li[name='"+el.innerText.trim()+"']").forEach(li=>{
+                li.addClass("active");
+            })
+        })
+        showModal("#categoriesModal")
+    });
+}
+
+addLiFunctionality = () => {
+    $("#categoriesModal .inner ul li").forEach(el=>{
+        el.addEventListener("click", function(){
+            el.toggleClass("active");
+        });
+    })
+}
+
+/* https://github.com/xavame/xavame.github.io/blob/development/pages/_slug.vue */
+scrollToTop = (element, totalTime, easingPower) => {
+    const easeInOut = (t, power) => {
+      if (t < 0.5) {
+        return 0.5 * Math.pow(2 * t, power);
+      } else {
+        return 0.5 * (2 - Math.pow(2 * (1 - t), power));
+      }
+    };
+    const timeInterval = 1;
+    const scrollTop = Math.round(element.scrollTop);
+    let timeLeft = totalTime;
+    const scrollByPixel = setInterval(function() {
+      const percentSpent = (totalTime - timeLeft) / totalTime;
+      if (timeLeft >= 0) {
+        const newScrollTop = scrollTop * (1 - easeInOut(percentSpent, easingPower));
+        element.scrollTop = newScrollTop;
+        timeLeft--;
+      } else {
+        clearInterval(scrollByPixel);
+      }
+    }, timeInterval);
+  },
+
+addItemFunctionality = () => {
+    $(".item").forEach(el=>{
+        el.addEventListener("click", function(){
+            if(changesMade && !window.confirm("Yaptığınız değişiklikler kaybolabilir. Devam etmek istiyor musunuz?")) return false;
+            $(".item").forEach(el=>{
+                el.removeClass("active");
+            });
+            el.addClass("active");
+            $(".secondLeftBar").removeClass("full");
+            $("#title").innerText = el.find(".name").innerText;
+            $("#content").innerText = el.find(".content .summary").innerHTML;
+            $("#slug").innerText = el.find(".content .slug").innerText;
+            map.setCenter(new google.maps.LatLng(el.find(".lat").innerText, el.find(".lng").innerText))
+            /* https://www.unixtimestamp.com/index.php */
+            $("#date input").value = new Date(Number(el.find(".content .date").innerHTML)).toISOString().slice(0, -5);
+            let pTags = !!(el.find(".content .tags").innerHTML) ? (el.find(".content .tags").innerHTML).split(",").map(el=>{
+                return tagTemplate.join(el.trim());
+            }).join("") : "";
+            $("#tags").innerHTML = pTags + '<div class="addTag">+</div>';
+            changesMade = false;
+            scrollToTop($(".innerMain"), 100, 3);
+            addTagFunctionality();
+            $(".main").removeClass("loading");
+        });
+    })
+}
+
+listFromArr = (arr, lastActive, callback) => {
+    let lastid = $("#slug").innerText;
+    let itemTemplate = ['<div class="item ',
+    '" slug="',
+    '"><div class="name">',
+    '</div><div class="content"><span class="summary">',
+    '</span><div class="date">',
+    '</div><div class="humanDate">',
+    '</div><div class="tags">',
+    '</div><div class="slug">',
+    '</div><div class="lat">',
+    '</div><div class="lng">',
+    '</div></div></div>'];
+    let categories = {}
+    $("#items").innerHTML = ""
+    arr.map(el=>{
+        //console.log(el);
+        /* https://stackoverflow.com/questions/9229213/convert-iso-date-to-milliseconds-in-javascript */
+        /* https://www.toptal.com/software/definitive-guide-to-datetime-manipulation */
+        var myDate = new Date(el.KampanyaSuresi._seconds*1000);
+        var offset = myDate.getTimezoneOffset() * 60 * 1000;
+        var dateString = myDate.getTime() - offset;
+        let currentDate = new Date(el.KampanyaSuresi._seconds*1000);
+        var date = currentDate.getDate();
+        var month = currentDate.getMonth();
+        var year = currentDate.getFullYear();
+        var humanDate = date + " " + monthArr[month] + " " + year;
+        
+        el.KampanyaKategori.map(cat=>{
+            categories[cat] = 1;
+        })
+
+        $("#items").innerHTML += 
+            itemTemplate[0] + (lastActive==="last" && lastid === el.FirmaID ? "active" : "") + 
+            itemTemplate[1] + el.FirmaID +
+            itemTemplate[2] + el.FirmaAdi +
+            itemTemplate[3] + el.KampanyaIcerik +
+            itemTemplate[4] + dateString +
+            itemTemplate[5] + humanDate +
+            itemTemplate[6] + el.KampanyaKategori.join(",") +
+            itemTemplate[7] + el.FirmaID +
+            itemTemplate[8] + el.FirmaLokasyon._latitude +
+            itemTemplate[9] + el.FirmaLokasyon._longitude +
+            itemTemplate[10]
+        ;
+    })
+
+    oldCategories = {...oldCategories, ...categories};
+
+    $("#categoriesModal .inner ul").innerHTML = Object.keys(oldCategories).map(cat=>modalTagTemplate.join(cat)).join("")
+
+    let n = isNaN($("#categoriesModal .inner ul li").length) ? 1 : $("#categoriesModal .inner ul li").length
+    $("#categoriesNumber").innerText = n;
+    let k = isNaN($("#items .item").length) ? 1 : $("#items .item").length
+    $("#postsNumber").innerText = k;
+
+    addItemFunctionality();
+    
+    if(lastActive==="last"){
+        lastActive = null;
+    }
+    
+    if (lastActive && JSON.parse(lastActive) && JSON.parse(lastActive).returnObj && JSON.parse(lastActive).returnObj.id){
+        $("#items .item[slug='"+JSON.parse(lastActive).returnObj.id+"']").click();
+    }
+
+    
+
+    addLiFunctionality();
+    callback();
+}
+
+loadItems = (lastActive, callback=()=>{}) => {    
+    $("#items").innerHTML = '<div class="loader"><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>';
+    get("/list", (response)=>{
+        let arr = JSON.parse(response).returnObj;
+        lastArr = arr;
+        console.log("Fetched New Items List: ",arr);
+        listFromArr(arr, lastActive, callback);
+    })
+    
+}
+
+loginOnload = function() {
+    $("#name").addEventListener("keydown", function(){
+        $("#err").innerText = "";
+    })
+    $("#pass").addEventListener("keydown", function(event){
+        if (event.which == 13 || event.keyCode == 13) {
+            generateToken();
+            return false;
+        }
+        $("#err").innerText = "";
+    })
+};
+
+function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 12,
+        center: {lat: 40.8221848, lng: 29.9214841},
+        gestureHandling: 'cooperative',
+        disableDefaultUI: true,
+        scaleControl: true,
+        zoomControl: true,
+        //https://snazzymaps.com/style/151/ultra-light-with-labels
+        styles: [
+            {
+                "featureType": "landscape",
+                "elementType": "geometry.fill",
+                "stylers": [
+                    {
+                        "visibility": "on"
+                    }
+                ]
+            },
+            {
+                "featureType": "water",
+                "elementType": "geometry",
+                "stylers": [
+                    {
+                        "color": "#e9e9e9"
+                    },
+                    {
+                        "lightness": 17
+                    }
+                ]
+            },
+            {
+                "featureType": "landscape",
+                "elementType": "geometry",
+                "stylers": [
+                    {
+                        "color": "#f5f5f5"
+                    },
+                    {
+                        "lightness": 20
+                    }
+                ]
+            },
+            {
+                "featureType": "road.highway",
+                "elementType": "geometry.fill",
+                "stylers": [
+                    {
+                        "color": "#ffffff"
+                    },
+                    {
+                        "lightness": 17
+                    }
+                ]
+            },
+            {
+                "featureType": "road.highway",
+                "elementType": "geometry.stroke",
+                "stylers": [
+                    {
+                        "color": "#ffffff"
+                    },
+                    {
+                        "lightness": 29
+                    },
+                    {
+                        "weight": 0.2
+                    }
+                ]
+            },
+            {
+                "featureType": "road.arterial",
+                "elementType": "geometry",
+                "stylers": [
+                    {
+                        "color": "#ffffff"
+                    },
+                    {
+                        "lightness": 18
+                    }
+                ]
+            },
+            {
+                "featureType": "road.local",
+                "elementType": "geometry",
+                "stylers": [
+                    {
+                        "color": "#ffffff"
+                    },
+                    {
+                        "lightness": 16
+                    }
+                ]
+            },
+            {
+                "featureType": "poi",
+                "elementType": "geometry",
+                "stylers": [
+                    {
+                        "color": "#f5f5f5"
+                    },
+                    {
+                        "lightness": 21
+                    }
+                ]
+            },
+            {
+                "featureType": "poi.park",
+                "elementType": "geometry",
+                "stylers": [
+                    {
+                        "color": "#dedede"
+                    },
+                    {
+                        "lightness": 21
+                    }
+                ]
+            },
+            {
+                "elementType": "labels.text.stroke",
+                "stylers": [
+                    {
+                        "visibility": "on"
+                    },
+                    {
+                        "color": "#ffffff"
+                    },
+                    {
+                        "lightness": 16
+                    }
+                ]
+            },
+            {
+                "elementType": "labels.text.fill",
+                "stylers": [
+                    {
+                        "saturation": 36
+                    },
+                    {
+                        "color": "#333333"
+                    },
+                    {
+                        "lightness": 40
+                    }
+                ]
+            },
+            {
+                "elementType": "labels.icon",
+                "stylers": [
+                    {
+                        "visibility": "on"
+                    }
+                ]
+            },
+            {
+                "featureType": "transit",
+                "elementType": "geometry",
+                "stylers": [
+                    {
+                        "color": "#f2f2f2"
+                    },
+                    {
+                        "lightness": 19
+                    }
+                ]
+            },
+            {
+                "featureType": "administrative",
+                "elementType": "geometry.fill",
+                "stylers": [
+                    {
+                        "color": "#fefefe"
+                    },
+                    {
+                        "lightness": 20
+                    }
+                ]
+            },
+            {
+                "featureType": "administrative",
+                "elementType": "geometry.stroke",
+                "stylers": [
+                    {
+                        "color": "#fefefe"
+                    },
+                    {
+                        "lightness": 17
+                    },
+                    {
+                        "weight": 1.2
+                    }
+                ]
+            }
+        ]
+    });
+}
+
+adminOnload = function() {
+
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            // User is signed in.
+            $("#newPost").addEventListener("click", function(){
+                if(changesMade && !window.confirm("Yaptığınız değişiklikler kaybolabilir. Devam etmek istiyor musunuz?")) return false;
+                $(".item").forEach(el=>{
+                    el.removeClass("active");
+                })
+                var myDate = new Date();
+                var offset = myDate.getTimezoneOffset() * 60 * 1000;
+                var dateString = myDate.getTime() - offset;
+                $("#date input").value = new Date(dateString).toISOString().slice(0, -5);
+                $("#title").innerText = "";
+                map.setCenter(new google.maps.LatLng(40.8221848, 29.9214841))
+                $("#content").innerText = "";
+                $("#slug").innerText = "";
+                $("#tags").innerHTML = '<div class="addTag">+</div>';
+                $(".secondLeftBar").removeClass("full");
+                $("#title").focus();
+                changesMade = false;
+                addTagFunctionality();
+                $(".main").removeClass("loading");
+                scrollToTop($(".innerMain"), 100, 3);
+            })
+        
+            $("#addCircle").addEventListener("click", function(){
+                $("#newPost").click();
+            });
+
+            $("#content").addEventListener("keyup", function(){
+                changesMade = true;
+            });
+        
+            $("#createCategory").addEventListener("click", function(){
+                let name = $("#categoriesModal #categoryName").value;
+                if($("#categoriesModal .inner ul li[name='"+name+"']").length===0){
+                    let catName = name.trim().replace(/\,|\"|\'|\`/g, '');
+                    $("#categoriesModal .inner ul").innerHTML = modalTagTemplate.join(catName) + $("#categoriesModal .inner ul").innerHTML;
+                    oldCategories[catName] = 1;
+                    addLiFunctionality();
+                }else{
+                    $("#categoriesModal .inner ul li[name='"+name+"']").addClass("active");
+                }
+                $("#categoriesModal #categoryName").value = "";
+                $("#categoriesModal #categoryName").focus();
+            });
+        
+            $("#search").addEventListener("keyup", function(){
+                $("#searchButton").click();
+            });
+
+            $("#categoriesModal #categoryName").addEventListener("keydown", function(event){
+                if (event.which == 13 || event.keyCode == 13) {
+                    $("#createCategory").click();
+                    return false;
+                }
+            })
+              
+            $("#searchButton").addEventListener("click", function(event){
+                listFromArr(lastArr.filter((a)=>{
+                    return a.FirmaAdi.toLowerCase().indexOf($("#search").value.toLowerCase()) > -1;
+                }), "last", ()=>{
+                    console.log("searched from last array");
+                })
+            })
+            
+            $("#save").addEventListener("click", function(){
+                this.addClass("loading");
+                let category = [];
+                $("#tags .tag").forEach(el=>{
+                    category.push(el.attr("name"));
+                })
+                
+                post("/addItem/", {
+                    name: $("#title").innerText,
+                    id: $("#slug").innerText ? $("#slug").innerText : (+new Date()).toString(),
+                    location: [map.center.lat(),map.center.lng()],
+                    content: $("#content").innerText,
+                    time: new Date($("#date input").value).getTime(),
+                    category
+                }, (res)=>{
+                    changesMade = false;
+                    loadItems(res, ()=>{
+                        $("#save").removeClass("loading");
+                    });
+                })
+            });
+    
+            $("#postFullDate").addEventListener("change", function(el){
+                changesMade = true;
+            });
+        
+            $("#removePost").addEventListener("click", function(){
+                let id = $(".item.active").length!==0 ? $(".item.active").attr("slug") : null;
+                if(id){
+                    this.addClass("loading");
+                    $(".main").addClass("loading")
+                    post("/removeItem/", {
+                        id
+                    }, (res)=>{
+                        setTimeout(function(){
+                            loadItems(null, ()=>{
+                                $(".secondLeftBar").addClass("full");
+                                $("#removePost").removeClass("loading");
+                            });
+                        },1000)
+                    })
+                }
+            });
+        
+            $("#filter").addEventListener("click", function(){
+                if(changesMade && !window.confirm("Yaptığınız değişiklikler kaybolabilir. Devam etmek istiyor musunuz?")) return false;
+                changesMade = false;
+                this.toggleClass("active");
+                let v = this.hasClass("active");
+                this.find("span").innerText = v ? "En yeni" : "En eski";
+                //this may be the best trick
+                $("#items").toggleClass("reverse");
+            });
+        
+            loadItems();
+        } else {
+            // No user is signed in.
+            console.log("Nope. Redirecting back.");
+            window.location = "/";
+        }
+    });
+};
+
+
+--------{--(@  Bull-Cloud/public/index.html  @)--}--------
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="./assets/css/styles.css" />
+    <title>Bull Admin</title>
+  </head>
+  <body onload="loginOnload()">
+    <div class="loginWrapper">
+      <div class="login">
+        <h1>bull</h1>
+        <div class="inputWrapper">
+          <label for="name">Kullanıcı Adı</label>
+          <input type="text" id="name" autofocus />
+        </div>
+        <div class="inputWrapper">
+          <label for="pass">Şifre</label>
+          <input type="password" id="pass" />
+        </div>
+        <div class="err" id="err"></div>
+        <button onClick="generateToken()">
+          <svg
+            role="img"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+          >
+            <rect width="14" height="10" x="5" y="11"></rect>
+            <path
+              d="M12,3 L12,3 C14.7614237,3 17,5.23857625 17,8 L17,11 L7,11 L7,8 C7,5.23857625 9.23857625,3 12,3 Z"
+            ></path>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+          Giriş Yap
+        </button>
+      </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-auth.js"></script>
+    <script src="./assets/js/main.js"></script>
+  </body>
+</html>
+
+
+
+--------{--(@  Bull-Mobile/app/app.iml  @)--}--------
+
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id=":app" external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$/.." external.system.id="GRADLE" type="JAVA_MODULE" version="4">
+  <component name="FacetManager">
+    <facet type="android-gradle" name="Android-Gradle">
+      <configuration>
+        <option name="GRADLE_PROJECT_PATH" value=":app" />
+      </configuration>
+    </facet>
+    <facet type="android" name="Android">
+      <configuration>
+        <option name="SELECTED_BUILD_VARIANT" value="debug" />
+        <option name="ASSEMBLE_TASK_NAME" value="assembleDebug" />
+        <option name="COMPILE_JAVA_TASK_NAME" value="compileDebugSources" />
+        <afterSyncTasks>
+          <task>generateDebugSources</task>
+        </afterSyncTasks>
+        <option name="ALLOW_USER_CONFIGURATION" value="false" />
+        <option name="MANIFEST_FILE_RELATIVE_PATH" value="/src/main/AndroidManifest.xml" />
+        <option name="RES_FOLDER_RELATIVE_PATH" value="/src/main/res" />
+        <option name="RES_FOLDERS_RELATIVE_PATH" value="file://$MODULE_DIR$/src/main/res;file://$MODULE_DIR$/build/generated/res/google-services/debug;file://$MODULE_DIR$/build/generated/res/resValues/debug" />
+        <option name="TEST_RES_FOLDERS_RELATIVE_PATH" value="" />
+        <option name="ASSETS_FOLDER_RELATIVE_PATH" value="/src/main/assets" />
+      </configuration>
+    </facet>
+    <facet type="kotlin-language" name="Kotlin">
+      <configuration version="3" platform="JVM 1.6" useProjectSettings="false">
+        <compilerSettings />
+        <compilerArguments>
+          <option name="destination" value="$MODULE_DIR$/build/tmp/kotlin-classes/debug" />
+          <option name="classpath" value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-android-extensions-runtime/1.3.31/721b62ccbafe51a284ca0d1c5dcfdce8cedd4255/kotlin-android-extensions-runtime-1.3.31.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/1.3.31/e652770b6416c6d85934086899ffed3eccd35813/kotlin-stdlib-jdk7-1.3.31.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/com.beust/klaxon/5.0.1/4c1ffe12cd890eef021808dfb2fe2993dfeaf0c9/klaxon-5.0.1.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.2.60/33af8b35817e4c97a477a6a324032e0591d04f36/kotlin-reflect-1.2.60.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.3.31/11289d20fd95ae219333f3456072be9f081c30cc/kotlin-stdlib-1.3.31.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.3.31/20c34a04ea25cb1ef0139598bd67c764562cb170/kotlin-stdlib-common-1.3.31.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/919f0dfe192fb4e063e7dacadee7f8bb9a2672a9/annotations-13.0.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/66a873676109fae7656c41966d2fdc24/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/b3c50aac80b1df6e93d9abd9e2aeaa21/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/1aebfeb69bec00ea37aa0c71f9e4e88c/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/9746f9c68935cd3dc28f4bfb85c86201/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/c212590e2d7cc7376427131a853614e7/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/1975a429fab1344bbe1000f8d4782206/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/8c57d68b072d16d8925790b57b4a24ec/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/e6fac674ed2b15546230eded43309382/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/dbbaefaaccda0b2991226520037b6e97/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/8e71f6eb75e21323c12fb05c431fa61d/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/1681b5fd702a1ff0f9efe9d7ab06024b/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/1d1855cf0016f63dbc7ddd32c9cf13d3/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/b0d1324b59d7e97f8b6aa8da6f03f290/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/0d8426ce98a0027b98ef3b20191887ac/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/c5eb013baf37b634031545d1dd60ceaf/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/0d5b7dd83dddb88d366abdbf6d7b60db/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/4b558b0e6c906e5fb8cc1eb0226b0c65/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/5e356f0fe38c66e1fe9004e648413039/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/790628709a66b4f1e513b8fd12d5218b/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/94e65e1d84da60bdc1bdbdc32def949a/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/dc766aa2fd88dae7411e01f405898257/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/fc58dda759488b75b72bc5d0bdce23b8/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/02fd005af1e54bbc26254eb49ae98216/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/b02d06581fecf6807baa276a563edbd4/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/d5d1088cd58ab50528b9bb38e356ffa7/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/be49b474c83c32f1124b4e900a97259a/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/97ce86bb8145d04cb74289f1f458add8/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/2ad9671898c950f4d7ea34c70fe7cf45/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/8731fdaa3f4935155694b234c50cc0b7/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/9131b3d235981b85dac65b8a0a759001/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/56b9d94dfed98f394f8bcb144c97980c/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/140c26e35469f0f369f3b9b99a8a03f6/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/9fc9874ed62029f156ea8eae0efb7a39/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/fce327bb8272a0cc5f1c2867e9da8656/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/8d6574696398f387944041535a4e6398/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/8aaa138f9a7cbb57d71fd76f27e5a76a/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/1bf1a6d1e30ed1fd78cd65a19fac3226/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/8e6c396b42b568d11a761af18d4684fb/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/2c09411001c1b8925acb69a801eab3ae/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/184d31bf66b95e61b91286ef4f42f86c/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/860cd66f913b6416f5fda9740d9cdfaf/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/3a7d87723b9125eb9c775a75e38c9d22/jars/classes.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/com.android.support/collections/28.0.0/c1bcdade4d3cc2836130424a3f3e4182c666a745/collections-28.0.0.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/e0f8d61d7c068ba44359d7671c9c0192/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/f6e8314430c1b210d6361ef88edf4589/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/a69f7112395bf1940a5fdb9866bba4a6/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/62c3ae77fab6d24cf3f0cb76a74b52b2/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/04431083273871cb12e0c164a02786b1/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/200c1e6010cf898f3eb79cf371070348/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/5957b0b18cc455fd7fbd04c4716b69bd/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/fdce4b4f3a784e0916c0b14bf3de2e53/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/5c6358f475ed80d4169a9ae1b0c9846d/jars/classes.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/7f6c2f79b8ec8b22d072bc579ff74906/jars/classes.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/android.arch.lifecycle/common/1.1.1/207a6efae6a3555e326de41f76bdadd9a239cbce/common-1.1.1.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/da6478957bed52e0248cabe516555bcc/jars/classes.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/android.arch.core/common/1.1.1/e55b70d1f5620db124b3e85a7f4bdc7bd48d9f95/common-1.1.1.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/com.android.support/support-annotations/28.0.0/ed73f5337a002d1fd24339d5fb08c2c9d9ca60d8/support-annotations-28.0.0.jar;C:/Users/xava/.gradle/caches/transforms-2/files-2.1/d80554adbcbab024ae4d5c2af0f884e0/jars/classes.jar;C:/Users/xava/.gradle/caches/modules-2/files-2.1/com.google.auto.value/auto-value-annotations/1.6.3/b88c1bb7f149f6d2cc03898359283e57b08f39cc/auto-value-annotations-1.6.3.jar;C:/Users/xava/AppData/Local/Android/Sdk/platforms/android-28/android.jar" />
+          <option name="noStdlib" value="true" />
+          <option name="noReflect" value="true" />
+          <option name="moduleName" value="app_debug" />
+          <option name="addCompilerBuiltIns" value="true" />
+          <option name="loadBuiltInsFromDependencies" value="true" />
+          <option name="languageVersion" value="1.3" />
+          <option name="apiVersion" value="1.3" />
+          <option name="pluginOptions">
+            <array>
+              <option value="plugin:org.jetbrains.kotlin.android:experimental=false" />
+              <option value="plugin:org.jetbrains.kotlin.android:enabled=true" />
+              <option value="plugin:org.jetbrains.kotlin.android:defaultCacheImplementation=hashMap" />
+            </array>
+          </option>
+          <option name="pluginClasspaths">
+            <array>
+              <option value="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-android-extensions/1.3.31/57bdeb88c9265052448a7a8422ed64ad92e9b262/kotlin-android-extensions-1.3.31.jar" />
+            </array>
+          </option>
+          <option name="errors">
+            <ArgumentParseErrors />
+          </option>
+        </compilerArguments>
+      </configuration>
+    </facet>
+  </component>
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_7">
+    <output url="file://$MODULE_DIR$/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes" />
+    <output-test url="file://$MODULE_DIR$/build/intermediates/javac/debugUnitTest/compileDebugUnitTestJavaWithJavac/classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/apt/debug" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/aidl_source_output_dir/debug/compileDebugAidl/out" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/buildConfig/debug" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/renderscript_source_output_dir/debug/compileDebugRenderscript/out" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/res/google-services/debug" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/res/rs/debug" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/res/resValues/debug" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/apt/androidTest/debug" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/aidl_source_output_dir/debugAndroidTest/compileDebugAndroidTestAidl/out" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/buildConfig/androidTest/debug" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/renderscript_source_output_dir/debugAndroidTest/compileDebugAndroidTestRenderscript/out" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/res/rs/androidTest/debug" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/res/resValues/androidTest/debug" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/build/generated/source/apt/test/debug" isTestSource="true" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/debug/res" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/debug/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/debug/assets" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/debug/aidl" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/debug/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/debug/rs" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/debug/shaders" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/testDebug/res" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/testDebug/resources" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/testDebug/assets" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/testDebug/aidl" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/testDebug/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/testDebug/rs" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/testDebug/shaders" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTestDebug/res" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTestDebug/resources" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTestDebug/assets" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTestDebug/aidl" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTestDebug/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTestDebug/rs" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTestDebug/shaders" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/res" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/assets" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/aidl" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/rs" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/shaders" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTest/res" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTest/resources" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTest/assets" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTest/aidl" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTest/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTest/rs" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/androidTest/shaders" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/res" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/resources" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/assets" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/aidl" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/rs" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/shaders" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/build/generated/not_namespaced_r_class_sources" />
+      <excludeFolder url="file://$MODULE_DIR$/build/generated/source/r" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/annotation_processor_list" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/apk_list" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/blame" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/build-info" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/bundle_manifest" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/check_manifest_result" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/compatible_screen_manifest" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/duplicate_classes_check" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental-runtime-classes" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental-verifier" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant-run-apk" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant_app_manifest" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant_run_app_info_output_file" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant_run_main_apk_resources" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant_run_merged_manifests" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant_run_split_apk_resources" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/javac" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/lint_jar" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/manifest-checker" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/merged_assets" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/merged_jni_libs" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/merged_manifests" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/merged_shaders" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/metadata_application_id" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/metadata_feature_manifest" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/prebuild" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/processed_res" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/reload-dex" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/res" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/resources" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/shader_assets" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/signing_config" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/split-apk" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/symbols" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/transforms" />
+      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/validate_signing_config" />
+      <excludeFolder url="file://$MODULE_DIR$/build/kotlin" />
+      <excludeFolder url="file://$MODULE_DIR$/build/outputs" />
+      <excludeFolder url="file://$MODULE_DIR$/build/tmp" />
+    </content>
+    <orderEntry type="jdk" jdkName="Android API 28 Platform" jdkType="Android SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Gradle: com.android.support:design:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-ads-identifier:16.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-fragment:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:localbroadcastmanager:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-auth:17.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-measurement-base:16.5.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:animated-vector-drawable:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: android.arch.lifecycle:viewmodel:1.1.1@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.android.support.test.espresso:espresso-idling-resource:3.0.2@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:loader:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: android.arch.core:runtime:1.1.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-common:17.0.0@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.android.support.test:runner:1.0.2@aar" level="project" />
+    <orderEntry type="library" name="Gradle: android.arch.lifecycle:livedata-core:1.1.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-reflect:1.2.60@jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.squareup:javawriter:2.1.1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:cursoradapter:28.0.0@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.android.support.test.espresso:espresso-core:3.0.2@aar" level="project" />
+    <orderEntry type="library" name="Gradle: android.arch.lifecycle:runtime:1.1.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-compat:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-auth-interop:17.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-core:16.0.9@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:cardview-v7:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0@jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: javax.inject:javax.inject:1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-maps:16.1.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-flags:16.0.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-common:1.3.31@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-basement:16.2.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-vector-drawable:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-core-utils:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:recyclerview-v7:28.0.0@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.android.support.test:monitor:1.0.2@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-iid:17.1.2@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-annotations:28.0.0@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:interpolator:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:transition:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: android.arch.lifecycle:livedata:1.1.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:drawerlayout:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.3.31@jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: net.sf.kxml:kxml2:2.3.0@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-measurement-sdk:16.5.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.3.31@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:documentfile:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:slidingpanelayout:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:appcompat-v7:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-iid-interop:16.0.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:collections:28.0.0@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-v4:26.1.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-core-ui:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:asynclayoutinflater:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.auto.value:auto-value-annotations:1.6.3@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:print:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:support-media-compat:26.1.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.volley:volley:1.1.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-stats:16.0.1@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.google.code.findbugs:jsr305:2.0.1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-analytics:16.5.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-measurement:16.5.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: android.arch.core:common:1.1.1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:versionedparcelable:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-base:16.0.1@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: junit:junit:4.12@jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: org.hamcrest:hamcrest-core:1.3@jar" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.31@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:viewpager:28.0.0@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: org.hamcrest:hamcrest-integration:1.3@jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: org.hamcrest:hamcrest-library:1.3@jar" level="project" />
+    <orderEntry type="library" name="Gradle: android.arch.lifecycle:common:1.1.1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-measurement-api:16.5.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:coordinatorlayout:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:customview:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.android.support:swiperefreshlayout:28.0.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-measurement-impl:16.5.0@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.firebase:firebase-measurement-connector:17.0.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.beust:klaxon:5.0.1@jar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-tasks:16.0.1@aar" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.android.gms:play-services-measurement-sdk-api:16.5.0@aar" level="project" />
+  </component>
+</module>
+
+
+--------{--(@  Bull-Mobile/app/build.gradle  @)--}--------
+
+apply plugin: 'com.android.application'
+
+apply plugin: 'kotlin-android'
+
+apply plugin: 'kotlin-android-extensions'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.xavame.bull"
+        minSdkVersion 24
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    //noinspection GradleCompatible
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.google.android.gms:play-services-maps:16.1.0'
+    implementation 'com.android.volley:volley:1.1.1'
+    implementation 'com.beust:klaxon:5.0.1'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    implementation 'com.google.firebase:firebase-core:16.0.9'
+    implementation 'com.google.firebase:firebase-auth:17.0.0'
+    implementation 'com.android.support:design:28.0.0'
+}
+
+apply plugin: 'com.google.gms.google-services'
+
+
+
+--------{--(@  Bull-Mobile/app/google-services.json  @)--}--------
+
+{
+  "project_info": {
+    "project_number": "",
+    "firebase_url": "",
+    "project_id": "",
+    "storage_bucket": ""
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "",
+        "android_client_info": {
+          "package_name": "com.xavame.bull"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": ""
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+
+
+--------{--(@  Bull-Mobile/app/src/main/AndroidManifest.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools" package="com.xavame.bull">
+
+    <!--
+         The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
+         Google Maps Android API v2, but you must specify either coarse or fine
+         location permissions for the 'MyLocation' functionality.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+            android:allowBackup="true"
+            android:label="@string/app_name"
+            android:supportsRtl="true"
+            android:usesCleartextTraffic="true"
+            android:theme="@style/AppTheme" tools:ignore="GoogleAppIndexingWarning">
+
+        <!--
+             The API key for Google Maps-based APIs is defined as a string resource.
+             (See the file "res/values/google_maps_api.xml").
+             Note that the API key is linked to the encryption key used to sign the APK.
+             You need a different API key for each encryption key, including the release key that is used to
+             sign the APK for publishing.
+             You can define the keys for the debug and release targets in src/debug/ and src/release/.
+        -->
+        <meta-data
+                android:name="com.google.android.geo.API_KEY"
+                android:value="@string/google_maps_key"/>
+        <meta-data android:name="preloaded_fonts" android:resource="@array/preloaded_fonts"/>
+        <activity android:name=".Login"
+                  android:windowSoftInputMode="adjustResize"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity android:name=".Register"
+                  android:windowSoftInputMode="adjustResize"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        </activity>
+        <activity android:name=".User"
+                  android:windowSoftInputMode="adjustResize"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        </activity>
+        <activity
+                android:name=".Map"
+                android:label="@string/title_activity_maps"
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        >
+        </activity>
+    </application>
+
+</manifest>
+
+
+--------{--(@  Bull-Mobile/app/src/main/java/com/xavame/bull/CardHolder.kt  @)--}--------
+
+package com.xavame.bull
+
+import android.support.v7.widget.RecyclerView
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import kotlinx.android.synthetic.main.kampanyacard.view.*
+
+// https://developer.android.com/guide/topics/ui/layout/cardview
+// https://medium.com/kouosl/kotlin-android-recylerview-kullan%C4%B1m%C4%B1-684caddfc808
+class CardHolder(private val companies : MutableList<Map.CardPlate>) : RecyclerView.Adapter<CardHolder.CompanyViewHolder>() {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CompanyViewHolder {
+        val v = LayoutInflater.from(parent.context).inflate(R.layout.kampanyacard,parent,false)
+        return CompanyViewHolder(v)
+    }
+
+    override fun getItemCount(): Int {
+        return companies.size
+    }
+
+    override fun onBindViewHolder(holder: CompanyViewHolder, position: Int) {
+        val company = companies[position]
+        holder.itemView.firmaAdi.text = company.FirmaAdi
+        holder.itemView.kampanyaIcerik.text = company.KampanyaIcerik
+        holder.itemView.kampanyaKategori.text = company.KampanyaKategori
+
+        //https://stackoverflow.com/questions/10177552/how-do-i-create-a-unix-timestamp-on-android
+        //https://stackoverflow.com/questions/22641728/creating-a-timer-which-shows-time-left-for-an-event-in-seconds-minutes-hours
+        val unixTime = System.currentTimeMillis() / 1000L
+        val millisToGo = (company.KampanyaTarih.toInt() - unixTime)*1000
+        val minutes = (millisToGo / (1000 * 60) % 60).toInt()
+        val hours = (millisToGo / (1000 * 60 * 60)).toInt()
+        var text = String.format("%02d saat %02d dakika kaldı", hours, minutes)
+        if(hours<0 || minutes<0){
+            text = "Kampanya süresi dolmuştur."
+        }
+        holder.itemView.kampanyaTarih.text = text
+    }
+
+    class CompanyViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
+}
+
+
+--------{--(@  Bull-Mobile/app/src/main/java/com/xavame/bull/Login.kt  @)--}--------
+
+package com.xavame.bull
+
+import android.content.Intent
+import android.graphics.Color
+import android.support.v7.app.AppCompatActivity
+import android.os.Bundle
+import android.util.Log
+import android.view.View
+import android.widget.Toast
+import android.widget.EditText
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.android.synthetic.main.login.*
+
+// https://firebase.google.com/docs/android/setup?authuser=0
+// https://firebase.google.com/docs/android/setup
+
+class Login : AppCompatActivity() {
+    private lateinit var auth: FirebaseAuth
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Initialize Layout
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.login)
+
+        // Change status bar to white
+        window.decorView.systemUiVisibility =View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        window.statusBarColor = Color.WHITE
+        window.decorView.setBackgroundColor(Color.WHITE)
+
+        // Initialize Firebase
+        auth = FirebaseAuth.getInstance()
+    }
+
+    public override fun onStart() {
+        super.onStart()
+        // Check if user is signed in (non-null) and update UI accordingly.
+        val currentUser = auth.currentUser
+        if(currentUser != null){
+            //Toast.makeText(this, currentUser.toString(), Toast.LENGTH_LONG).show()
+            nextScreenUser()
+        }
+    }
+
+    private fun validation(id: EditText, pw: EditText): Boolean {
+        return if ( id.text.toString() == "" || pw.text.toString() == "" ){
+            Toast.makeText(this, "E-Posta veya Şifre boş olamaz.", Toast.LENGTH_LONG).show()
+            false
+        } else true
+    }
+
+    fun login(view: View) {
+        Log.d("view", view.toString())
+        if ( validation(loginEmail , loginPassword) ) {
+            auth.signInWithEmailAndPassword(loginEmail.text.toString(), loginPassword.text.toString())
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        // Sign in success, update UI with the signed-in user's information
+                        auth.currentUser
+                        Toast.makeText(this, "Giriş başarılı.", Toast.LENGTH_LONG).show()
+                        nextScreenUser()
+                    } else {
+                        // If sign in fails, display a message to the user.
+                        Toast.makeText(baseContext, "Giriş başarısız.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+    }
+
+    // After logging in successfully, redirect to user page.
+    private fun nextScreenUser(){
+        startActivity(Intent(this, User::class.java))
+    }
+
+    // On click of register link
+    fun nextScreenRegister(view: View){
+        Log.d("view",view.toString())
+        startActivity(Intent(this, Register::class.java))
+    }
+}
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/java/com/xavame/bull/Map.kt  @)--}--------
+
+package com.xavame.bull
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.graphics.Color
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.support.v7.app.AppCompatActivity
+import android.os.Bundle
+import android.support.design.widget.TabLayout
+import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
+import android.support.v7.widget.LinearLayoutManager
+import android.util.Log
+import android.view.View
+import android.widget.*
+import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
+import com.beust.klaxon.*
+
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.*
+import kotlinx.android.synthetic.main.map.*
+import java.io.StringReader
+
+
+
+class Map : AppCompatActivity(), OnMapReadyCallback {
+    private var locationManager : LocationManager? = null
+    private lateinit var mMap: GoogleMap
+    private var markers: MutableList<CardPlate> = mutableListOf()
+    var rad = 1.0
+    lateinit var person: Circle
+    private lateinit var circle: Circle
+    private var oldLocLat = 0.0
+    private var oldLocLng = 0.0
+    var tip = "current"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.map)
+
+        //white status bar
+        window.decorView.systemUiVisibility =View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        window.statusBarColor = Color.WHITE
+        window.decorView.setBackgroundColor(Color.WHITE)
+
+        // Create persistent LocationManager reference
+        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager?
+
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.map) as SupportMapFragment
+        mapFragment.getMapAsync(this)
+
+        getCategories()
+        listenSeekBarInit()
+        listenTabInit()
+
+        recylerView.layoutManager = LinearLayoutManager(this,LinearLayout.VERTICAL,false)
+        markers.forEach{
+            Log.d("e",it.FirmaAdi)
+        }
+    }
+
+    data class CardPlate(
+        val FirmaAdi: String="",
+        val KampanyaIcerik: String="",
+        val KampanyaKategori: String="",
+        val KampanyaTarih: String="",
+        val Latitude: Double,
+        val Longitude: Double,
+        val MarkerObj: Marker
+    )
+
+    data class Lokasyon(
+        val _latitude: Double,
+        val _longitude: Double
+    )
+    data class Sure(
+        val _seconds: Int,
+        val _nanoseconds: Int
+    )
+    data class Item(
+        val KampanyaIcerik: String,
+        val KampanyaKategori: List<String>,
+        val FirmaLokasyon: Lokasyon,
+        val FirmaID: String,
+        val FirmaAdi: String,
+        val KampanyaSuresi: Sure
+    )
+
+    // Look out for the tab change
+    private fun listenTabInit(){
+        tabLayout.addOnTabSelectedListener(object: TabLayout.OnTabSelectedListener {
+            override fun onTabUnselected(p0: TabLayout.Tab?) {}
+            override fun onTabReselected(p0: TabLayout.Tab?) {}
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                Log.d("tab",tab.position.toString())
+                //will change to map or list
+                if(tab.position==1){
+                    mapWrapper.visibility = View.INVISIBLE
+                    list.visibility = View.VISIBLE
+                }else if(tab.position==0){
+                    mapWrapper.visibility = View.VISIBLE
+                    list.visibility = View.INVISIBLE
+                }
+            }
+        })
+    }
+
+    // Look out for the distance slider change
+    private fun listenSeekBarInit(){
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            @SuppressLint("SetTextI18n")
+            override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
+                if((i+1)<10){
+                    kmVal.text = "${(i+1)*100}m"
+                }else{
+                    kmVal.text = "${(i+1)/10.0}km"
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                Toast.makeText(applicationContext,"Çevre değiştiriliyor...",Toast.LENGTH_SHORT).show()
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                rad = (seekBar.progress+1)/10.0
+                getMarkers(person.center.latitude, person.center.longitude, rad)
+            }
+        })
+    }
+
+    // Mask markers according to filters
+    private fun maskTheMarkers(){
+        // https://stackoverflow.com/questions/44674532/how-to-filter-a-list-in-place-with-kotlin
+
+        fun retainByCategory(it: CardPlate, category: String): Boolean {
+            return (it.KampanyaKategori+",").contains("$category,")
+        }
+        fun retainBySearch(it: CardPlate, search: String): Boolean {
+            return (it.FirmaAdi).toLowerCase().contains(search.toLowerCase()) || (it.KampanyaIcerik).toLowerCase().contains(search.toLowerCase())
+        }
+
+        // Clone the markers
+        val maskedMarkers: MutableList<CardPlate> = markers.toMutableList()
+        if(spinner.selectedItemPosition!=0){
+            maskedMarkers.retainAll { retainByCategory(it, spinner.selectedItem.toString()) }
+        }
+        if(textFilter.text.toString()!="") {
+            maskedMarkers.retainAll { retainBySearch(it, textFilter.text.toString()) }
+        }
+        Log.d("maskTheMarkers","POS=${spinner.selectedItemPosition}, ID=${spinner.selectedItem}, SEARCH=${textFilter.text}")
+
+        clearMarkers()
+        maskedMarkers.forEach {
+            addMarker(
+                it.FirmaAdi,
+                it.KampanyaIcerik,
+                it.KampanyaKategori,
+                it.KampanyaTarih,
+                it.Latitude,
+                it.Longitude
+            )
+        }
+
+        recylerView.adapter = CardHolder(markers)
+    }
+
+    // Get categories and fill the dropdown menu
+    private fun getCategories(){
+        // https://stackoverflow.com/questions/13377361/how-to-create-a-drop-down-list?rq=1
+        val listOfCategories = mutableListOf("Tümü")
+
+        // https://stackoverflow.com/questions/41928803/how-to-parse-json-in-kotlin
+        // https://github.com/Kotlin/kotlinx.serialization
+        val req = object : JsonObjectRequest(
+            Method.GET, "https://bull-41.firebaseapp.com/categories", null,
+            Response.Listener { responseJsonObj ->
+                val klaxon = Klaxon()
+                val parsed = klaxon.parseJsonObject(StringReader(responseJsonObj.toString().trimIndent()))
+                val dataArray = parsed.array<Any>("returnObj")
+                val items = dataArray?.let { klaxon.parseFromJsonArray<String>(it) }
+                items?.forEach {
+                    listOfCategories += it
+                }
+                //Toast.makeText(this,"Response=$it",Toast.LENGTH_SHORT).show()
+            },
+            Response.ErrorListener {
+                Toast.makeText(this,"Hiç kategori bulunamadı.",Toast.LENGTH_SHORT).show()
+            }
+        ){}
+        VolleySingleton.getInstance(this).addToRequestQueue(req)
+
+        //create an adapter to describe how the items are displayed, adapters are used in several places in android.
+        //There are multiple variations of this, but this is the basic variant.
+       val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOfCategories)
+        //set the spinners adapter to the previously created one.
+        spinner.adapter = adapter
+    }
+
+    fun clearMarkers(){
+        // Remove all markers from map
+        markers.forEach{
+            it.MarkerObj.remove()
+        }
+        // and from list
+        markers.clear()
+
+        // Update adapter
+        recylerView.adapter = CardHolder(markers)
+    }
+
+    fun addMarker(title: String, desc: String, cat: String, time: String, lat: Double, lng: Double){
+        // Set the color for marker
+        val icon = BitmapDescriptorFactory
+            .defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+
+        // Add marker to the map
+        val marker = mMap.addMarker(
+            MarkerOptions()
+                .position(LatLng(lat, lng))
+                .icon(icon)
+                .title(title)
+                .snippet(cat)
+        )
+
+        //marker.showInfoWindow()
+
+        // And add the reference to list for further removal
+        markers.add(
+            CardPlate(
+                title,
+                desc,
+                cat,
+                time,
+                lat,
+                lng,
+                marker
+            )
+        )
+    }
+
+    fun getMarkers(lat: Double, lng: Double, rad: Double) {
+        changeRad(lat, lng)
+        Toast.makeText(this,"Güncelleniyor...",Toast.LENGTH_SHORT).show()
+        // Then, send a request
+        val req = object : JsonObjectRequest(
+            Method.POST, "https://bull-41.firebaseapp.com/radius", null,
+            Response.Listener {
+                // https://stackoverflow.com/questions/41928803/how-to-parse-json-in-kotlin
+                // https://github.com/Kotlin/kotlinx.serialization
+                val json = it.toString().trimIndent()
+                val klaxon = Klaxon()
+                val items = klaxon
+                    .parseJsonObject(StringReader(json))
+                    .array<Any>("returnObj")
+                    ?.let { item -> klaxon.parseFromJsonArray<Item>(item) }
+
+                clearMarkers()
+                items?.forEach { item ->
+                    addMarker(
+                        item.FirmaAdi,
+                        item.KampanyaIcerik,
+                        item.KampanyaKategori.joinToString{ k -> k },
+                        item.KampanyaSuresi._seconds.toString(),
+                        item.FirmaLokasyon._latitude,
+                        item.FirmaLokasyon._longitude
+                    )
+                }
+
+                // Then, if filter is on, mask the markers
+                maskTheMarkers()
+            },
+            Response.ErrorListener {
+                clearMarkers()
+                Toast.makeText(this,"Yakınınızda hiç fırsat yok.",Toast.LENGTH_SHORT).show()
+            }
+        ) {
+            override fun getBody(): ByteArray {
+                Log.d("getBody", "RAD=$rad, LAT=$lat, LNG=$lng")
+                return """
+                    {
+                        "currentLocation":{
+                            "lat":$lat,
+                            "lng":$lng
+                        },
+                        "radius":$rad
+                    }
+                """.toByteArray()
+            }
+
+        }
+        VolleySingleton.getInstance(this).addToRequestQueue(req)
+    }
+
+    // Change radius of the circle and move the camera to
+    private fun changeRad(lat: Double, lng: Double){
+        circle.radius = rad*1000.0
+        // Maybe find a better solution?
+        var zoom = 14f
+        when {
+            rad <= 1 -> zoom = 14f
+            rad <= 3 -> zoom = 13f
+            rad <= 6 -> zoom = 12f
+            rad <= 12 -> zoom = 11f
+            rad <= 24 -> zoom = 10f
+            rad <= 48 -> zoom = 9f
+            rad <= 96 -> zoom = 8f
+            rad <= 192 -> zoom = 7f
+        }
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat,lng),zoom))
+    }
+
+    // Change latitude and longitude of the center
+    fun changeCenter(location: Location?){
+        val latitude = location!!.latitude
+        val longitude = location.longitude
+        circle.center = LatLng(latitude,longitude)
+        person.center = LatLng(latitude,longitude)
+        // Check if he/she moving, if so, change the center accordingly
+        if((Math.abs(oldLocLat - latitude) + Math.abs(oldLocLng - longitude)) > 0.001){
+            oldLocLat = latitude
+            oldLocLng = longitude
+            Log.d("changeCenter", "LAT=$latitude, LNG=$longitude")
+            getMarkers(latitude, longitude, rad)
+        }else{
+            Log.d("changeCenter", "NO CHANGE")
+            //Toast.makeText(this,"Yürümüyorsun.",Toast.LENGTH_SHORT).show()
+        }
+        mMap.cameraPosition.target
+    }
+
+    // Source: https://medium.com/@manuaravindpta/getting-current-location-in-kotlin-30b437891781
+    // Gets current location
+    private fun getLocation() {
+        // Create a location manager and listener
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager?
+        val locationListener = object : LocationListener{
+            override fun onLocationChanged(location: Location?) { if(tip=="current") changeCenter(location) }
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+            override fun onProviderEnabled(provider: String?) {}
+            override fun onProviderDisabled(provider: String?) {}
+        }
+
+        // Try to access location, if location is not accessible, warn user
+        try {
+            locationManager!!.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0f, locationListener)
+        } catch (ex:SecurityException) {
+            Toast.makeText(applicationContext, "Lokasyon erişimi engelli!", Toast.LENGTH_SHORT).show()
+        }
+
+        // Ask for permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                PERMISSION_REQUEST_ACCESS_FINE_LOCATION)
+            return
+        }
+
+        // Request location information (From GPS and Network)
+        locationManager!!.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, locationListener)
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0f, locationListener)
+    }
+
+    // Gets permission for location information
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_ACCESS_FINE_LOCATION) {
+            when (grantResults[0]) {
+                PackageManager.PERMISSION_GRANTED -> getLocation()
+                PackageManager.PERMISSION_DENIED ->  Toast.makeText(applicationContext, "Lokasyon erişimi kısıtlı!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Runs when select location button is pressed
+    fun selectLocation(view: View) {
+        Log.d("selectLocation", "VIEW=$view")
+        //select map center location
+        tip = "select"
+        val targetLocation = Location("user")
+        targetLocation.latitude = mMap.cameraPosition.target.latitude
+        targetLocation.longitude = mMap.cameraPosition.target.longitude
+        changeCenter(targetLocation)
+    }
+
+    // Runs when current location button is pressed
+    fun currentLocation(view: View) {
+        Log.d("currentLocation", "VIEW=$view")
+        //select current location
+        tip = "current"
+    }
+
+    // Runs when filter button is pressed
+    fun filterButtonClick(view: View) {
+        Log.d("filterButtonClick", "VIEW=$view")
+        //just refresh, it'll mask
+        getMarkers(person.center.latitude, person.center.longitude, rad)
+    }
+
+    // Runs when map sources are fully loaded
+    override fun onMapReady(googleMap: GoogleMap) {
+        mMap = googleMap
+
+        // Set the map theme
+        // Exact same map theme we use on admin panel
+        val myMapStyle = """
+            [{"featureType":"landscape","elementType":"geometry.fill","stylers":[{"visibility":"on"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#e9e9e9"},{"lightness":17}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#f5f5f5"},{"lightness":20}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#ffffff"},{"lightness":17}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#ffffff"},{"lightness":29},{"weight":0.2}]},{"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#ffffff"},{"lightness":18}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#ffffff"},{"lightness":16}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#f5f5f5"},{"lightness":21}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#dedede"},{"lightness":21}]},{"elementType":"labels.text.stroke","stylers":[{"visibility":"on"},{"color":"#ffffff"},{"lightness":16}]},{"elementType":"labels.text.fill","stylers":[{"saturation":36},{"color":"#333333"},{"lightness":40}]},{"elementType":"labels.icon","stylers":[{"visibility":"on"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#f2f2f2"},{"lightness":19}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#fefefe"},{"lightness":20}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#fefefe"},{"lightness":17},{"weight":1.2}]}]
+        """.trimIndent()
+        val style = MapStyleOptions(myMapStyle)
+        mMap.setMapStyle(style)
+
+        // Add radius circle
+        circle = mMap.addCircle(
+            CircleOptions()
+                .center(LatLng(0.0,0.0))
+                .radius(rad*1000.0)
+                .strokeColor(Color.argb(150, 77, 125, 254))
+                .fillColor(Color.argb(50, 77, 125, 254))
+        )
+
+        // Add approximate standing point
+        person = mMap.addCircle(
+            CircleOptions()
+                .center(LatLng(0.0,0.0))
+                .radius(10.0)
+                .strokeColor(Color.argb(150, 77, 125, 254))
+                .fillColor(Color.argb(150, 77, 125, 254))
+        )
+
+        // Limit zoom
+        mMap.setMinZoomPreference(6.0f)
+        mMap.setMaxZoomPreference(18.0f)
+
+        // Get current (or selected) location to pinpoint on map
+        getLocation()
+    }
+
+    companion object {
+        private const val PERMISSION_REQUEST_ACCESS_FINE_LOCATION = 100
+    }
+}
+
+
+--------{--(@  Bull-Mobile/app/src/main/java/com/xavame/bull/Register.kt  @)--}--------
+
+package com.xavame.bull
+
+import android.content.Intent
+import android.graphics.Color
+import android.support.v7.app.AppCompatActivity
+import android.os.Bundle
+import android.util.Log
+import android.view.View
+import android.widget.EditText
+import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import kotlinx.android.synthetic.main.register.*
+
+class Register : AppCompatActivity() {
+    private lateinit var auth: FirebaseAuth
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Initialize Layout
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.register)
+
+        // Change status bar to white
+        window.decorView.systemUiVisibility =View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        window.statusBarColor = Color.WHITE
+        window.decorView.setBackgroundColor(Color.WHITE)
+
+        // Initialize Firebase
+        auth = FirebaseAuth.getInstance()
+    }
+
+    fun register(view: View) {
+        Log.i("register", view.toString())
+        if ( validation(registerEmail, registerPassword, registerDisplayName) ) {
+            auth.createUserWithEmailAndPassword(registerEmail.text.toString(), registerPassword.text.toString())
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        // Sign in success, update UI with the signed-in user's information
+                        Log.d("register", "createUserWithEmail:success")
+                        Toast.makeText(this, "Kayıt başarılı. Yönlendiriliyor...", Toast.LENGTH_LONG).show()
+                        val user = auth.currentUser
+                        user?.updateProfile(UserProfileChangeRequest.Builder()
+                            .setDisplayName(registerDisplayName.text.toString())
+                            .build())
+                            ?.addOnCompleteListener { updateTask ->
+                                if (updateTask.isSuccessful) {
+                                    Log.d("register", "User profile updated.")
+                                    nextScreenUser()
+                                }
+                            }
+                    } else {
+                        // If sign in fails, display a message to the user.
+                        Log.w("register", "createUserWithEmail:failure", task.exception)
+                        Toast.makeText(baseContext, "Kayıt başarısız.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+    }
+
+    // Validate inputs, if error occurs, create Toast
+    private fun validation(id: EditText, pw: EditText, dn: EditText): Boolean {
+        return if ( id.text.toString() == "" || pw.text.toString() == "" || dn.text.toString() == "" ){
+            Toast.makeText(this, "E-Posta, Görünen Ad veya Şifre boş olamaz.", Toast.LENGTH_LONG).show()
+            false
+        } else true
+    }
+
+    // After registering successfully, redirect to user page.
+    private fun nextScreenUser(){
+        finish()
+        startActivity(Intent(this, User::class.java))
+    }
+
+    // On click of login link
+    fun nextScreenLogin(view: View){
+        Log.d("view", view.toString())
+        finish()
+    }
+}
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/java/com/xavame/bull/User.kt  @)--}--------
+
+package com.xavame.bull
+
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.graphics.Color
+import android.support.v7.app.AppCompatActivity
+import android.os.Bundle
+import android.util.Log
+import android.view.View
+import com.google.firebase.auth.FirebaseAuth
+import android.widget.*
+import kotlinx.android.synthetic.main.user.*
+
+class User : AppCompatActivity() {
+    private lateinit var auth: FirebaseAuth
+    override fun onCreate(savedInstanceState: Bundle?) {
+        //init
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.user)
+
+        //white status bar
+        window.decorView.systemUiVisibility =View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        window.statusBarColor = Color.WHITE
+        window.decorView.setBackgroundColor(Color.WHITE)
+
+        //auth
+        auth = FirebaseAuth.getInstance()
+    }
+
+    @SuppressLint("SetTextI18n")
+    public override fun onStart() {
+        super.onStart()
+        // Check if user is signed in (non-null) and update UI accordingly.
+        val currentUser = auth.currentUser
+        textView6.text = "Tekrar Hoşgeldin,\n"+currentUser?.displayName
+        //Toast.makeText(this, currentUser?.displayName, Toast.LENGTH_LONG).show()
+    }
+
+    /** Called when the user taps the Login button  */
+    fun logout(view: View) {
+        Log.d("view", view.toString())
+        // Do something in response to button
+        Toast.makeText(this, "Çıkış yapılıyor...", Toast.LENGTH_LONG).show()
+        FirebaseAuth.getInstance().signOut()
+        finish()
+    }
+
+    fun nextScreenMap(view: View){
+        Log.d("view", view.toString())
+        startActivity(Intent(this, Map::class.java))
+    }
+
+    fun passwordReset(view: View){
+        Log.d("view", view.toString())
+        val user = FirebaseAuth.getInstance().currentUser
+        val newPassword = yeniSifre.text.toString()
+
+        user?.updatePassword(newPassword)
+            ?.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("passwordUpdate", "User password updated.")
+                    Toast.makeText(this, "Şifre değiştirildi, lütfen tekrar giriş yapın.", Toast.LENGTH_LONG).show()
+                    FirebaseAuth.getInstance().signOut()
+                    finish()
+                }else{
+                    Toast.makeText(this, "Şifre değiştirilirken hata.", Toast.LENGTH_LONG).show()
+                    Log.d("passwordUpdate", "HATA HATA BİP BOP.")
+                }
+            }
+    }
+}
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/java/com/xavame/bull/VolleySingleton.kt  @)--}--------
+
+package com.xavame.bull
+
+import android.content.Context
+import com.android.volley.Request
+import com.android.volley.RequestQueue
+import com.android.volley.toolbox.Volley
+
+// https://developer.android.com/training/volley/requestqueue
+class VolleySingleton constructor(context: Context) {
+    companion object {
+        @Volatile
+        private var INSTANCE: VolleySingleton? = null
+        fun getInstance(context: Context) =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: VolleySingleton(context).also {
+                    INSTANCE = it
+                }
+            }
+    }
+
+    private val requestQueue: RequestQueue by lazy {
+        // applicationContext is key, it keeps you from leaking the
+        // Activity or BroadcastReceiver if someone passes one in.
+        Volley.newRequestQueue(context.applicationContext)
+    }
+    fun <T> addToRequestQueue(req: Request<T>) {
+        requestQueue.add(req)
+    }
+}
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/font/nunito_black.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto"
+        app:fontProviderAuthority="com.google.android.gms.fonts"
+        app:fontProviderPackage="com.google.android.gms"
+        app:fontProviderQuery="name=Nunito&amp;weight=900"
+        app:fontProviderCerts="@array/com_google_android_gms_fonts_certs">
+</font-family>
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/font/nunito_semibold.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto"
+        app:fontProviderAuthority="com.google.android.gms.fonts"
+        app:fontProviderPackage="com.google.android.gms"
+        app:fontProviderQuery="name=Nunito&amp;weight=600"
+        app:fontProviderCerts="@array/com_google_android_gms_fonts_certs">
+</font-family>
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/layout/kampanyacard.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/card_view"
+        android:layout_gravity="center"
+        android:layout_width="match_parent"
+        app:cardCornerRadius="2dp"
+        app:contentPadding="10dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp">
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        <TextView
+                android:id="@+id/firmaAdi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/firma_ad"
+                android:textSize="32sp"
+                android:paddingBottom="5dp"
+                android:fontFamily="@font/nunito_black"/>
+        <TextView
+                android:id="@+id/kampanyaIcerik"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/lorem"
+                android:paddingBottom="5dp" android:fontFamily="@font/nunito_semibold"/>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+            <TextView
+                    android:id="@+id/kampanyaKategori"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/selamlar_kelamlar"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/nunito_semibold"/>
+            <TextView
+                    android:id="@+id/kampanyaTarih"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/_25_04_2019_14_23"
+                    android:fontFamily="@font/nunito_semibold"/>
+        </LinearLayout>
+    </LinearLayout>
+</android.support.v7.widget.CardView>
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/layout/login.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools" android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:gravity="center_vertical">
+    <TextView
+            android:text="@string/bull"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/loginBullLogo"
+            android:fontFamily="@font/nunito_black"
+            android:textAlignment="center"
+            android:textSize="36sp"
+            android:textColor="@color/colorAccent"
+            android:layout_marginBottom="20dp"/>
+    <TextView
+            android:text="@string/e_posta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/loginEmailLabel"
+            android:textColor="#adb5bd"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"/>
+    <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textEmailAddress"
+            android:ems="10"
+            android:id="@+id/loginEmail"
+            android:backgroundTint="#f1f3f5"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"
+            android:importantForAutofill="no"
+            tools:targetApi="o"
+            tools:ignore="LabelFor"/>
+    <TextView
+            android:text="@string/fre"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/loginPasswordLabel"
+            android:textColor="#adb5bd"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"/>
+    <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"
+            android:ems="10"
+            android:id="@+id/loginPassword"
+            android:backgroundTint="#f1f3f5"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"
+            android:importantForAutofill="no"
+            tools:targetApi="o"
+            tools:ignore="LabelFor"/>
+    <Button
+            android:text="@string/giri_yap"
+            android:layout_width="match_parent"
+            android:layout_height="88dp"
+            android:id="@+id/loginLoginButton"
+            android:fontFamily="@font/nunito_black"
+            android:textAllCaps="false"
+            android:backgroundTint="@color/colorPrimary"
+            android:textColor="#fff"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:layout_marginTop="20dp"
+            android:textSize="18sp"
+            android:onClick="login"/>
+    <TextView
+            android:text="@string/ya_da"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/loginOrLabel"
+            android:textColor="#adb5bd"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:textAlignment="center"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:fontFamily="@font/nunito_semibold"/>
+    <TextView
+            android:text="@string/kay_t_ol"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/loginRegisterLink"
+            android:textColor="@color/colorPrimary"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:textAlignment="center"
+            android:textSize="18sp"
+            android:onClick="nextScreenRegister"
+            android:fontFamily="@font/nunito_semibold"/>
+</LinearLayout>
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/layout/map.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/mapWrapper"
+            android:visibility="visible">
+        <fragment
+                android:layout_width="match_parent"
+                android:id="@+id/map"
+                tools:context=".Map"
+                android:name="com.google.android.gms.maps.SupportMapFragment"
+                android:layout_height="match_parent"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible"
+            android:gravity="center"
+            android:paddingTop="110dp"
+            android:id="@+id/list"
+            android:paddingBottom="110dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+        <android.support.v7.widget.RecyclerView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/recylerView"/>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF"
+            android:gravity="top"
+            android:id="@+id/filter"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="0dp">
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <EditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"
+                    android:ems="10"
+                    android:id="@+id/textFilter"
+                    android:layout_weight="1"
+                    android:backgroundTint="#f1f3f5"
+                    android:fontFamily="@font/nunito_semibold"
+                    android:hint="@string/filtre"
+                    android:importantForAutofill="no"
+                    tools:targetApi="o"/>
+            <Spinner
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/spinner"
+                    android:layout_weight="1"/>
+            <Button
+                    android:text="@string/ara"
+                    android:layout_width="300dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:id="@+id/filterButton"
+                    android:fontFamily="@font/nunito_black"
+                    android:textAllCaps="false"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="#fff"
+                    android:textSize="14sp"
+                    android:onClick="filterButtonClick"/>
+        </LinearLayout>
+        <android.support.design.widget.TabLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/colorPrimary"
+                android:id="@+id/tabLayout"
+                app:tabIndicatorColor="@color/colorAccent">
+            <android.support.design.widget.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/harita"/>
+            <android.support.design.widget.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/liste"/>
+        </android.support.design.widget.TabLayout>
+    </LinearLayout>
+    <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="#FFFFFF"
+            android:gravity="bottom"
+            android:id="@+id/menuEl"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="10dp">
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <SeekBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:id="@+id/seekBar"
+                    android:layout_weight="20"
+                    android:progress="9"
+                    android:max="99"
+                    android:thumbTint="@color/colorAccent"
+                    android:progressTint="@color/colorAccent"/>
+            <TextView
+                    android:text="@string/_1_0km"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/kmVal"
+                    android:layout_weight="1"
+                    android:height="48dp"
+                    android:gravity="center"
+                    android:fontFamily="@font/nunito_black"
+                    android:textColor="@color/colorAccent"/>
+        </LinearLayout>
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <Button
+                    android:text="@string/konumu_se"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_height="60dp"
+                    android:id="@+id/selectLocation"
+                    android:fontFamily="@font/nunito_black"
+                    android:textAllCaps="false"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="#fff"
+                    android:textSize="14sp"
+                    android:onClick="selectLocation"
+                    tools:ignore="ButtonStyle"/>
+            <Button
+                    android:text="@string/mevcut_konum"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_height="60dp"
+                    android:id="@+id/currentLocation"
+                    android:fontFamily="@font/nunito_black"
+                    android:textAllCaps="false"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="#fff"
+                    android:textSize="14sp"
+                    android:onClick="currentLocation"
+                    tools:ignore="ButtonStyle"/>
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/layout/register.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:gravity="center_vertical">
+    <TextView
+            android:text="@string/bull"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/registerBullLogo"
+            android:fontFamily="@font/nunito_black"
+            android:textAlignment="center"
+            android:textSize="36sp"
+            android:textColor="@color/colorAccent"
+            android:layout_marginBottom="20dp"/>
+    <TextView
+            android:text="@string/e_posta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/registerEmailLabel"
+            android:textColor="#adb5bd"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"/>
+    <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textEmailAddress"
+            android:ems="10"
+            android:id="@+id/registerEmail"
+            android:backgroundTint="#f1f3f5"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"
+            android:autofillHints="email"
+            tools:ignore="LabelFor"
+            tools:targetApi="o"/>
+    <TextView
+            android:text="@string/g_r_nen_ad"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/registerDisplayNameLabel"
+            android:textColor="#adb5bd"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"/>
+    <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName"
+            android:ems="10"
+            android:id="@+id/registerDisplayName"
+            android:backgroundTint="#f1f3f5"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"
+            android:importantForAutofill="no"
+            tools:targetApi="o"
+            tools:ignore="LabelFor"/>
+    <TextView
+            android:text="@string/fre"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/registerPasswordLabel"
+            android:textColor="#adb5bd"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"/>
+    <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"
+            android:ems="10"
+            android:id="@+id/registerPassword"
+            android:backgroundTint="#f1f3f5"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:fontFamily="@font/nunito_semibold"
+            android:importantForAutofill="no"
+            tools:ignore="LabelFor"
+            tools:targetApi="o"/>
+    <Button
+            android:text="@string/kay_t_ol"
+            android:layout_width="match_parent"
+            android:layout_height="88dp"
+            android:id="@+id/registerRegisterButton"
+            android:fontFamily="@font/nunito_black"
+            android:textAllCaps="false"
+            android:backgroundTint="@color/colorPrimary"
+            android:textColor="#fff"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:layout_marginTop="20dp"
+            android:textSize="18sp"
+            android:onClick="register"/>
+    <TextView
+            android:text="@string/hesab_n_var_m"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/registerHaveAccountLabel"
+            android:textColor="#adb5bd"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:textAlignment="center"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:fontFamily="@font/nunito_semibold"/>
+    <TextView
+            android:text="@string/giri_yap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/registerLoginLink"
+            android:textColor="@color/colorPrimary"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:textAlignment="center"
+            android:textSize="18sp"
+            android:onClick="nextScreenLogin"
+            android:fontFamily="@font/nunito_semibold"/>
+</LinearLayout>
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/layout/user.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools" android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+>
+    <TextView
+            android:text="@string/bull"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:id="@+id/textView2" android:fontFamily="@font/nunito_black"
+            android:textAlignment="center" android:textSize="36sp" android:textColor="@color/colorAccent"
+            android:layout_marginBottom="10dp" android:layout_marginTop="30dp"/>
+    <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" android:id="@+id/scrollbit">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:orientation="vertical">
+            <TextView
+                    android:text="@string/tekrar_ho_geldin_nata_g_lalan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/textView6"
+                    android:paddingRight="30dp"
+                    android:paddingLeft="30dp"
+                    android:paddingTop="30dp"
+                    android:textSize="36sp"
+                    android:textAlignment="center"
+                    android:fontFamily="@font/nunito_semibold"/>
+            <Button
+                    android:text="@string/yak_n_mdaki_ma_azalar_bul"
+                    android:layout_width="match_parent"
+                    android:layout_height="88dp"
+                    android:id="@+id/gomap"
+                    android:fontFamily="@font/nunito_black"
+                    android:textAllCaps="false"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="#fff"
+                    android:layout_marginLeft="30dp"
+                    android:layout_marginRight="30dp"
+                    android:layout_marginTop="20dp"
+                    android:textSize="18sp"
+                    android:onClick="nextScreenMap"/>
+            <TextView
+                    android:text="@string/yen_fre"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/textView7"
+                    android:textColor="#adb5bd"
+                    android:layout_marginLeft="30dp"
+                    android:layout_marginRight="30dp"
+                    android:fontFamily="@font/nunito_semibold"
+                    android:layout_marginTop="60dp"/>
+            <EditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword"
+                    android:ems="10"
+                    android:id="@+id/yeniSifre"
+                    android:layout_marginRight="30dp"
+                    android:layout_marginLeft="30dp"
+                    android:backgroundTint="#f1f3f5"
+                    android:fontFamily="@font/nunito_semibold"
+                    android:importantForAutofill="no"
+                    tools:ignore="LabelFor"
+                    tools:targetApi="o"/>
+            <Button
+                    android:text="@string/ifre_de_i_tir"
+                    android:layout_width="match_parent"
+                    android:layout_height="88dp"
+                    android:id="@+id/changepass8"
+                    android:fontFamily="@font/nunito_black"
+                    android:textAllCaps="false"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="#fff"
+                    android:layout_marginLeft="30dp"
+                    android:layout_marginRight="30dp"
+                    android:layout_marginTop="10dp"
+                    android:textSize="18sp"
+                    android:onClick="passwordReset"/>
+            <TextView
+                    android:text="@string/k_yap"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/logout"
+                    android:textColor="@color/colorPrimary"
+                    android:layout_marginLeft="30dp"
+                    android:layout_marginRight="30dp"
+                    android:textAlignment="center"
+                    android:textSize="18sp"
+                    android:layout_marginTop="30dp"
+                    android:onClick="logout"
+                    android:fontFamily="@font/nunito_semibold"/>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/values/colors.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#4774F1</color>
+    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorAccent">#1E96FF</color>
+</resources>
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/values/font_certs.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="com_google_android_gms_fonts_certs">
+        <item>@array/com_google_android_gms_fonts_certs_dev</item>
+        <item>@array/com_google_android_gms_fonts_certs_prod</item>
+    </array>
+    <string-array name="com_google_android_gms_fonts_certs_dev">
+        <item>
+            MIIEqDCCA5CgAwIBAgIJANWFuGx90071MA0GCSqGSIb3DQEBBAUAMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEQMA4GA1UEChMHQW5kcm9pZDEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDEiMCAGCSqGSIb3DQEJARYTYW5kcm9pZEBhbmRyb2lkLmNvbTAeFw0wODA0MTUyMzM2NTZaFw0zNTA5MDEyMzM2NTZaMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEQMA4GA1UEChMHQW5kcm9pZDEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDEiMCAGCSqGSIb3DQEJARYTYW5kcm9pZEBhbmRyb2lkLmNvbTCCASAwDQYJKoZIhvcNAQEBBQADggENADCCAQgCggEBANbOLggKv+IxTdGNs8/TGFy0PTP6DHThvbbR24kT9ixcOd9W+EaBPWW+wPPKQmsHxajtWjmQwWfna8mZuSeJS48LIgAZlKkpFeVyxW0qMBujb8X8ETrWy550NaFtI6t9+u7hZeTfHwqNvacKhp1RbE6dBRGWynwMVX8XW8N1+UjFaq6GCJukT4qmpN2afb8sCjUigq0GuMwYXrFVee74bQgLHWGJwPmvmLHC69EH6kWr22ijx4OKXlSIx2xT1AsSHee70w5iDBiK4aph27yH3TxkXy9V89TDdexAcKk/cVHYNnDBapcavl7y0RiQ4biu8ymM8Ga/nmzhRKya6G0cGw8CAQOjgfwwgfkwHQYDVR0OBBYEFI0cxb6VTEM8YYY6FbBMvAPyT+CyMIHJBgNVHSMEgcEwgb6AFI0cxb6VTEM8YYY6FbBMvAPyT+CyoYGapIGXMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEQMA4GA1UEChMHQW5kcm9pZDEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDEiMCAGCSqGSIb3DQEJARYTYW5kcm9pZEBhbmRyb2lkLmNvbYIJANWFuGx90071MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADggEBABnTDPEF+3iSP0wNfdIjIz1AlnrPzgAIHVvXxunW7SBrDhEglQZBbKJEk5kT0mtKoOD1JMrSu1xuTKEBahWRbqHsXclaXjoBADb0kkjVEJu/Lh5hgYZnOjvlba8Ld7HCKePCVePoTJBdI4fvugnL8TsgK05aIskyY0hKI9L8KfqfGTl1lzOv2KoWD0KWwtAWPoGChZxmQ+nBli+gwYMzM1vAkP+aayLe0a1EQimlOalO762r0GXO0ks+UeXde2Z4e+8S/pf7pITEI/tP+MxJTALw9QUWEv9lKTk+jkbqxbsh8nfBUapfKqYn0eidpwq2AzVp3juYl7//fKnaPhJD9gs=
+        </item>
+    </string-array>
+    <string-array name="com_google_android_gms_fonts_certs_prod">
+        <item>
+            MIIEQzCCAyugAwIBAgIJAMLgh0ZkSjCNMA0GCSqGSIb3DQEBBAUAMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDAeFw0wODA4MjEyMzEzMzRaFw0zNjAxMDcyMzEzMzRaMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDCCASAwDQYJKoZIhvcNAQEBBQADggENADCCAQgCggEBAKtWLgDYO6IIrgqWbxJOKdoR8qtW0I9Y4sypEwPpt1TTcvZApxsdyxMJZ2JORland2qSGT2y5b+3JKkedxiLDmpHpDsz2WCbdxgxRczfey5YZnTJ4VZbH0xqWVW/8lGmPav5xVwnIiJS6HXk+BVKZF+JcWjAsb/GEuq/eFdpuzSqeYTcfi6idkyugwfYwXFU1+5fZKUaRKYCwkkFQVfcAs1fXA5V+++FGfvjJ/CxURaSxaBvGdGDhfXE28LWuT9ozCl5xw4Yq5OGazvV24mZVSoOO0yZ31j7kYvtwYK6NeADwbSxDdJEqO4k//0zOHKrUiGYXtqw/A0LFFtqoZKFjnkCAQOjgdkwgdYwHQYDVR0OBBYEFMd9jMIhF1Ylmn/Tgt9r45jk14alMIGmBgNVHSMEgZ4wgZuAFMd9jMIhF1Ylmn/Tgt9r45jk14aloXikdjB0MQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEUMBIGA1UEChMLR29vZ2xlIEluYy4xEDAOBgNVBAsTB0FuZHJvaWQxEDAOBgNVBAMTB0FuZHJvaWSCCQDC4IdGZEowjTAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBAUAA4IBAQBt0lLO74UwLDYKqs6Tm8/yzKkEu116FmH4rkaymUIE0P9KaMftGlMexFlaYjzmB2OxZyl6euNXEsQH8gjwyxCUKRJNexBiGcCEyj6z+a1fuHHvkiaai+KL8W1EyNmgjmyy8AW7P+LLlkR+ho5zEHatRbM/YAnqGcFh5iZBqpknHf1SKMXFh4dd239FJ1jWYfbMDMy3NS5CTMQ2XFI1MvcyUTdZPErjQfTbQe3aDQsQcafEQPD+nqActifKZ0Np0IS9L9kR/wbNvyz6ENwPiTrjV2KRkEjH78ZMcUQXg0L3BYHJ3lc69Vs5Ddf9uUGGMYldX3WfMBEmh/9iFBDAaTCK
+        </item>
+    </string-array>
+</resources>
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/values/preloaded_fonts.xml  @)--}--------
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="preloaded_fonts" translatable="false">
+        <item>@font/nunito_black</item>
+        <item>@font/nunito_semibold</item>
+    </array>
+</resources>
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/values/strings.xml  @)--}--------
+
+<resources>
+    <string name="app_name">Bull</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="bull">bull</string>
+    <string name="e_posta">E-POSTA</string>
+    <string name="g_r_nen_ad">GÖRÜNEN AD</string>
+    <string name="fre">ŞİFRE</string>
+    <string name="kay_t_ol">Kayıt Ol</string>
+    <string name="hesab_n_var_m">hesabın var mı?</string>
+    <string name="giri_yap">Giriş Yap</string>
+    <string name="k_yap">Çıkış Yap</string>
+    <string name="ifre_de_i_tir">Şifre Değiştir</string>
+    <string name="yen_fre">YENİ ŞİFRE</string>
+    <string name="tekrar_ho_geldin_nata_g_lalan">Tekrar Hoşgeldin, Ata Gülalan</string>
+    <string name="yak_n_mdaki_ma_azalar_bul">Yakınımdaki Mağazaları Bul</string>
+    <string name="harita">Harita</string>
+    <string name="liste">Liste</string>
+    <string name="mevcut_konum">Mevcut Konum</string>
+    <string name="konumu_se">Konumu Seç</string>
+    <string name="_1_0km">1.0km</string>
+    <string name="filtre">Filtre</string>
+    <string name="ara">Ara</string>
+    <string name="ya_da">ya da</string>
+    <string name="lorem">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget volutpat nulla, nec
+        porttitor justo. Maecenas vehicula ultricies lacus. Vivamus molestie turpis ac nulla ullamcorper, id volutpat
+        tortor condimentum. Aenean quis fermentum lacus, vitae posuere ligula. Aliquam pulvinar in quam in bibendum.
+        Cras non lacus sed lacus pellentesque posuere at ac nisi. Proin felis est, malesuada vel risus et, fringilla
+        feugiat ex. Aliquam elementum sem at lacus tincidunt dignissim. Duis sed efficitur dui, sed condimentum augue.
+        Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.
+    </string>
+    <string name="firma_ad">Firma Adı</string>
+    <string name="selamlar_kelamlar">Selamlar, Kelamlar</string>
+    <string name="_25_04_2019_14_23">25.04.2019 14:23</string>
+    <string name="google_maps_key">AIzaSyBET8tcjSw1h2YfyIhz8glqFA8kXboUnww</string>
+</resources>
+
+
+
+--------{--(@  Bull-Mobile/app/src/main/res/values/styles.xml  @)--}--------
+
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+</resources>
+
+
+
+--------{--(@  Bull-Mobile/build.gradle  @)--}--------
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext.kotlin_version = '1.3.31'
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+        classpath 'com.google.gms:google-services:4.2.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+
+
+--------{--(@  Bull-Mobile/Bull-Mobile.iml  @)--}--------
+
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id="Bull-Mobile" external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$" external.system.id="GRADLE" type="JAVA_MODULE" version="4">
+  <component name="FacetManager">
+    <facet type="java-gradle" name="Java-Gradle">
+      <configuration>
+        <option name="BUILD_FOLDER_PATH" value="$MODULE_DIR$/build" />
+        <option name="BUILDABLE" value="false" />
+      </configuration>
+    </facet>
+  </component>
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_7" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/.gradle" />
+    </content>
+    <orderEntry type="jdk" jdkName="1.8" jdkType="JavaSDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
+
+
+--------{--(@  Bull-Mobile/gradle.properties  @)--}--------
+
+# Project-wide Gradle settings.
+# IDE (e.g. Android Studio) users:
+# Gradle settings configured through the IDE *will override*
+# any settings specified in this file.
+# For more details on how to configure your build environment visit
+# http://www.gradle.org/docs/current/userguide/build_environment.html
+# Specifies the JVM arguments used for the daemon process.
+# The setting is particularly useful for tweaking memory settings.
+org.gradle.jvmargs=-Xmx1536m
+# When configured, Gradle will run in incubating parallel mode.
+# This option should only be used with decoupled projects. More details, visit
+# http://www.gradle.org/docs/current/userguide/multi_project_builds.html#sec:decoupled_projects
+# org.gradle.parallel=true
+# Kotlin code style for this project: "official" or "obsolete":
+kotlin.code.style=official
+
+
+
+--------{--(@  Bull-Mobile/gradlew  @)--}--------
+
+#!/usr/bin/env sh
+
+##############################################################################
+##
+##  Gradle start up script for UN*X
+##
+##############################################################################
+
+# Attempt to set APP_HOME
+# Resolve links: $0 may be a link
+PRG="$0"
+# Need this for relative symlinks.
+while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG=`dirname "$PRG"`"/$link"
+    fi
+done
+SAVED="`pwd`"
+cd "`dirname \"$PRG\"`/" >/dev/null
+APP_HOME="`pwd -P`"
+cd "$SAVED" >/dev/null
+
+APP_NAME="Gradle"
+APP_BASE_NAME=`basename "$0"`
+
+# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+DEFAULT_JVM_OPTS=""
+
+# Use the maximum available, or set MAX_FD != -1 to use that value.
+MAX_FD="maximum"
+
+warn () {
+    echo "$*"
+}
+
+die () {
+    echo
+    echo "$*"
+    echo
+    exit 1
+}
+
+# OS specific support (must be 'true' or 'false').
+cygwin=false
+msys=false
+darwin=false
+nonstop=false
+case "`uname`" in
+  CYGWIN* )
+    cygwin=true
+    ;;
+  Darwin* )
+    darwin=true
+    ;;
+  MINGW* )
+    msys=true
+    ;;
+  NONSTOP* )
+    nonstop=true
+    ;;
+esac
+
+CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses strange locations for the executables
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+fi
+
+# Increase the maximum file descriptors if we can.
+if [ "$cygwin" = "false" -a "$darwin" = "false" -a "$nonstop" = "false" ] ; then
+    MAX_FD_LIMIT=`ulimit -H -n`
+    if [ $? -eq 0 ] ; then
+        if [ "$MAX_FD" = "maximum" -o "$MAX_FD" = "max" ] ; then
+            MAX_FD="$MAX_FD_LIMIT"
+        fi
+        ulimit -n $MAX_FD
+        if [ $? -ne 0 ] ; then
+            warn "Could not set maximum file descriptor limit: $MAX_FD"
+        fi
+    else
+        warn "Could not query maximum file descriptor limit: $MAX_FD_LIMIT"
+    fi
+fi
+
+# For Darwin, add options to specify how the application appears in the dock
+if $darwin; then
+    GRADLE_OPTS="$GRADLE_OPTS \"-Xdock:name=$APP_NAME\" \"-Xdock:icon=$APP_HOME/media/gradle.icns\""
+fi
+
+# For Cygwin, switch paths to Windows format before running java
+if $cygwin ; then
+    APP_HOME=`cygpath --path --mixed "$APP_HOME"`
+    CLASSPATH=`cygpath --path --mixed "$CLASSPATH"`
+    JAVACMD=`cygpath --unix "$JAVACMD"`
+
+    # We build the pattern for arguments to be converted via cygpath
+    ROOTDIRSRAW=`find -L / -maxdepth 1 -mindepth 1 -type d 2>/dev/null`
+    SEP=""
+    for dir in $ROOTDIRSRAW ; do
+        ROOTDIRS="$ROOTDIRS$SEP$dir"
+        SEP="|"
+    done
+    OURCYGPATTERN="(^($ROOTDIRS))"
+    # Add a user-defined pattern to the cygpath arguments
+    if [ "$GRADLE_CYGPATTERN" != "" ] ; then
+        OURCYGPATTERN="$OURCYGPATTERN|($GRADLE_CYGPATTERN)"
+    fi
+    # Now convert the arguments - kludge to limit ourselves to /bin/sh
+    i=0
+    for arg in "$@" ; do
+        CHECK=`echo "$arg"|egrep -c "$OURCYGPATTERN" -`
+        CHECK2=`echo "$arg"|egrep -c "^-"`                                 ### Determine if an option
+
+        if [ $CHECK -ne 0 ] && [ $CHECK2 -eq 0 ] ; then                    ### Added a condition
+            eval `echo args$i`=`cygpath --path --ignore --mixed "$arg"`
+        else
+            eval `echo args$i`="\"$arg\""
+        fi
+        i=$((i+1))
+    done
+    case $i in
+        (0) set -- ;;
+        (1) set -- "$args0" ;;
+        (2) set -- "$args0" "$args1" ;;
+        (3) set -- "$args0" "$args1" "$args2" ;;
+        (4) set -- "$args0" "$args1" "$args2" "$args3" ;;
+        (5) set -- "$args0" "$args1" "$args2" "$args3" "$args4" ;;
+        (6) set -- "$args0" "$args1" "$args2" "$args3" "$args4" "$args5" ;;
+        (7) set -- "$args0" "$args1" "$args2" "$args3" "$args4" "$args5" "$args6" ;;
+        (8) set -- "$args0" "$args1" "$args2" "$args3" "$args4" "$args5" "$args6" "$args7" ;;
+        (9) set -- "$args0" "$args1" "$args2" "$args3" "$args4" "$args5" "$args6" "$args7" "$args8" ;;
+    esac
+fi
+
+# Escape application args
+save () {
+    for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; done
+    echo " "
+}
+APP_ARGS=$(save "$@")
+
+# Collect all arguments for the java command, following the shell quoting and substitution rules
+eval set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS "\"-Dorg.gradle.appname=$APP_BASE_NAME\"" -classpath "\"$CLASSPATH\"" org.gradle.wrapper.GradleWrapperMain "$APP_ARGS"
+
+# by default we should be in the correct project dir, but when run from Finder on Mac, the cwd is wrong
+if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
+  cd "$(dirname "$0")"
+fi
+
+exec "$JAVACMD" "$@"
+
+
+
+--------{--(@  Bull-Mobile/gradlew.bat  @)--}--------
+
+@if "%DEBUG%" == "" @echo off
+@rem ##########################################################################
+@rem
+@rem  Gradle startup script for Windows
+@rem
+@rem ##########################################################################
+
+@rem Set local scope for the variables with windows NT shell
+if "%OS%"=="Windows_NT" setlocal
+
+set DIRNAME=%~dp0
+if "%DIRNAME%" == "" set DIRNAME=.
+set APP_BASE_NAME=%~n0
+set APP_HOME=%DIRNAME%
+
+@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+set DEFAULT_JVM_OPTS=
+
+@rem Find java.exe
+if defined JAVA_HOME goto findJavaFromJavaHome
+
+set JAVA_EXE=java.exe
+%JAVA_EXE% -version >NUL 2>&1
+if "%ERRORLEVEL%" == "0" goto init
+
+echo.
+echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+echo.
+echo Please set the JAVA_HOME variable in your environment to match the
+echo location of your Java installation.
+
+goto fail
+
+:findJavaFromJavaHome
+set JAVA_HOME=%JAVA_HOME:"=%
+set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+
+if exist "%JAVA_EXE%" goto init
+
+echo.
+echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME%
+echo.
+echo Please set the JAVA_HOME variable in your environment to match the
+echo location of your Java installation.
+
+goto fail
+
+:init
+@rem Get command-line arguments, handling Windows variants
+
+if not "%OS%" == "Windows_NT" goto win9xME_args
+
+:win9xME_args
+@rem Slurp the command line arguments.
+set CMD_LINE_ARGS=
+set _SKIP=2
+
+:win9xME_args_slurp
+if "x%~1" == "x" goto execute
+
+set CMD_LINE_ARGS=%*
+
+:execute
+@rem Setup the command line
+
+set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+
+@rem Execute Gradle
+"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %CMD_LINE_ARGS%
+
+:end
+@rem End local scope for the variables with windows NT shell
+if "%ERRORLEVEL%"=="0" goto mainEnd
+
+:fail
+rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
+rem the _cmd.exe /c_ return code!
+if  not "" == "%GRADLE_EXIT_CONSOLE%" exit 1
+exit /b 1
+
+:mainEnd
+if "%OS%"=="Windows_NT" endlocal
+
+:omega
+
+
+
+--------{--(@  Bull-Mobile/local.properties  @)--}--------
+
+## This file is automatically generated by Android Studio.
+# Do not modify this file -- YOUR CHANGES WILL BE ERASED!
+#
+# This file should *NOT* be checked into Version Control Systems,
+# as it contains information specific to your local configuration.
+#
+# Location of the SDK. This is only used by Gradle.
+# For customization when using a Version Control System, please read the
+# header note.
+sdk.dir=C\:\\Users\\xava\\AppData\\Local\\Android\\Sdk
+
+
+
+--------{--(@  Bull-Mobile/settings.gradle  @)--}--------
+
+include ':app'
+
+
+
